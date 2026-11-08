@@ -21,6 +21,7 @@ import com.loveproof.testimonials.exception.ConflictException;
 import com.loveproof.testimonials.exception.DuplicateTestimonialException;
 import com.loveproof.testimonials.exception.NotFoundException;
 import com.loveproof.testimonials.exception.PlanLimitExceededException;
+import com.loveproof.testimonials.exception.SpaceNotAcceptingException;
 import com.loveproof.testimonials.web.dto.ErrorResponse;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -156,6 +157,29 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleConflict(ConflictException ex, HttpServletRequest request) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(
                 "CONFLICT",
+                ex.getMessage(),
+                Map.of(),
+                clock.instant(),
+                path(request)));
+    }
+
+    /**
+     * Handles a submission to a Space that is not collecting.
+     *
+     * <p>The answer is a 409 with a neutral message: the submitter learns
+     * that the Space is not accepting responses and nothing else. Why it
+     * stopped is the owner's business, and the owner sees the reason on
+     * their own Space page (PRD §4.5).
+     *
+     * @param ex      the exception
+     * @param request the servlet request
+     * @return a 409
+     */
+    @ExceptionHandler(SpaceNotAcceptingException.class)
+    public ResponseEntity<ErrorResponse> handleNotAccepting(
+            SpaceNotAcceptingException ex, HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(
+                "SPACE_NOT_ACCEPTING",
                 ex.getMessage(),
                 Map.of(),
                 clock.instant(),

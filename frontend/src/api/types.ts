@@ -243,3 +243,39 @@ export interface SubmittedTestimonial {
   id: string | null
   submittedAt: string
 }
+
+/**
+ * One testimonial in the owner's inbox.
+ *
+ * Mirrors `SpaceTestimonialResponse` in the backend. Unlike the public
+ * response it carries the email: the owner needs it to recognise a
+ * submission, and it is the owner's own data (PRD §4.7).
+ */
+export interface SpaceTestimonial {
+  id: string
+  name: string
+  email: string
+  content: string
+  rating: number | null
+  company: string | null
+  socialLink: string | null
+  website: string | null
+  jobTitle: string | null
+  consentGiven: boolean
+  favorite: boolean
+  wallOfLove: boolean
+  visible: boolean
+  submittedAt: string
+}
+
+/**
+ * The curation flags a request may change.
+ *
+ * A missing flag means "leave this alone", so a request that only favourites
+ * a testimonial never resets its Wall of Love or visibility state.
+ */
+export interface CurationPayload {
+  favorite?: boolean
+  wallOfLove?: boolean
+  visible?: boolean
+}

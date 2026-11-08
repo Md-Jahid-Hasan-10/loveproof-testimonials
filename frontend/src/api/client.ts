@@ -2,6 +2,7 @@ import type {
   AdminSession,
   CreateSpacePayload,
   CreateTestimonialPayload,
+  CurationPayload,
   Customer,
   DashboardStats,
   ErrorEnvelope,
@@ -9,6 +10,7 @@ import type {
   PublicSpace,
   PublicStats,
   Space,
+  SpaceTestimonial,
   SubmitSpaceTestimonialPayload,
   SubmittedTestimonial,
   Testimonial,
@@ -461,4 +463,85 @@ export function submitSpaceTestimonial(
     `/app/public/spaces/${slug}/testimonials`,
     payload,
   )
+}
+
+/**
+ * Lists the testimonials in one Space's inbox.
+ *
+ * The server sorts favourites first, then newest first, and applies the
+ * search and the filters. Every filter is optional: a missing one means
+ * "both".
+ */
+export function listSpaceTestimonials(
+  spaceId: string,
+  params: {
+    search?: string
+    favorite?: boolean
+    wallOfLove?: boolean
+    hidden?: boolean
+    rating?: number
+    page?: number
+    size?: number
+  } = {},
+): Promise<Page<SpaceTestimonial>> {
+  const query = new URLSearchParams()
+  if (params.search !== undefined && params.search !== '') {
+    query.set('search', params.search)
+  }
+  if (params.favorite !== undefined) query.set('favorite', String(params.favorite))
+  if (params.wallOfLove !== undefined) {
+    query.set('wallOfLove', String(params.wallOfLove))
+  }
+  if (params.hidden !== undefined) query.set('hidden', String(params.hidden))
+  if (params.rating !== undefined) query.set('rating', String(params.rating))
+  if (params.page !== undefined) query.set('page', String(params.page))
+  if (params.size !== undefined) query.set('size', String(params.size))
+  const suffix = query.toString()
+  return request<Page<SpaceTestimonial>>(
+    'GET',
+    `/app/spaces/${spaceId}/testimonials${suffix ? `?${suffix}` : ''}`,
+  )
+}
+
+/**
+ * Changes a testimonial's curation flags.
+ *
+ * Only the flags the payload mentions are changed: the others are left
+ * exactly as they were.
+ */
+export function curateSpaceTestimonial(
+  spaceId: string,
+  id: string,
+  payload: CurationPayload,
+): Promise<SpaceTestimonial> {
+  return request<SpaceTestimonial>(
+    'PATCH',
+    `/app/spaces/${spaceId}/testimonials/${id}`,
+    payload,
+  )
+}
+
+/**
+ * Edits the text of a testimonial.
+ */
+export function editSpaceTestimonial(
+  spaceId: string,
+  id: string,
+  content: string,
+): Promise<SpaceTestimonial> {
+  return request<SpaceTestimonial>(
+    'PUT',
+    `/app/spaces/${spaceId}/testimonials/${id}`,
+    { content },
+  )
+}
+
+/**
+ * Deletes a testimonial permanently.
+ */
+export function deleteSpaceTestimonial(
+  spaceId: string,
+  id: string,
+): Promise<void> {
+  return request<void>('DELETE', `/app/spaces/${spaceId}/testimonials/${id}`)
 }

@@ -138,8 +138,16 @@ public class RateLimitFilter extends OncePerRequestFilter {
      * @return true for a submission
      */
     private boolean isSubmission(HttpServletRequest request) {
-        return "POST".equalsIgnoreCase(request.getMethod())
-                && "/api/testimonials".equals(request.getRequestURI());
+        if (!"POST".equalsIgnoreCase(request.getMethod())) {
+            return false;
+        }
+        if ("/api/testimonials".equals(request.getRequestURI())) {
+            return true;
+        }
+        // A submission into a Space. The path ends in `/testimonials`, which
+        // is enough to tell it apart from the Space's read-only form endpoint.
+        return request.getRequestURI().startsWith("/api/app/public/spaces/")
+                && request.getRequestURI().endsWith("/testimonials");
     }
 
     /**

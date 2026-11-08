@@ -47,6 +47,64 @@ public interface SpaceTestimonialRepository
     Page<SpaceTestimonial> findBySpaceId(UUID spaceId, Pageable pageable);
 
     /**
+     * The inbox of one Space: favourites first, then newest first.
+     *
+     * <p>The ordering is the PRD's (4.7): a favourited testimonial always
+     * sorts above one that is not, and within each group the newest comes
+     * first.
+     *
+     * @param spaceId the Space
+     * @param pageable the page request
+     * @return the page of testimonials
+     */
+    @Query("""
+            SELECT t FROM SpaceTestimonial t
+            WHERE t.spaceId = :spaceId
+            ORDER BY t.favorite DESC, t.submittedAt DESC
+            """)
+    Page<SpaceTestimonial> findInbox(
+            @Param("spaceId") UUID spaceId,
+            Pageable pageable);
+
+    /**
+     * The inbox of one Space, with the search and filters applied.
+     *
+     * <p>Each filter is optional. The search covers the name, the email and
+     * the text, because those are the three things an owner looks for when
+     * they remember part of a submission.
+     *
+     * @param spaceId the Space
+     * @param search  the free-text search, or {@code null}
+     * @param favorite only favourites, or {@code null} for both
+     * @param wallOfLove only Wall of Love entries, or {@code null} for both
+     * @param hidden only hidden ones, or {@code null} for both
+     * @param rating only this rating, or {@code null} for all
+     * @param pageable the page request
+     * @return the page of testimonials
+     */
+    @Query("""
+            SELECT t FROM SpaceTestimonial t
+            WHERE t.spaceId = :spaceId
+              AND (:search IS NULL
+                   OR lower(t.name) LIKE :search
+                   OR lower(t.email) LIKE :search
+                   OR lower(t.content) LIKE :search)
+              AND (:favorite IS NULL OR t.favorite = :favorite)
+              AND (:wallOfLove IS NULL OR t.wallOfLove = :wallOfLove)
+              AND (:hidden IS NULL OR t.visible <> :hidden)
+              AND (:rating IS NULL OR t.rating = :rating)
+            ORDER BY t.favorite DESC, t.submittedAt DESC
+            """)
+    Page<SpaceTestimonial> findInboxFiltered(
+            @Param("spaceId") UUID spaceId,
+            @Param("search") String search,
+            @Param("favorite") Boolean favorite,
+            @Param("wallOfLove") Boolean wallOfLove,
+            @Param("hidden") Boolean hidden,
+            @Param("rating") Integer rating,
+            Pageable pageable);
+
+    /**
      * Finds one testimonial inside a Space.
      *
      * @param spaceId the Space
