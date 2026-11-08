@@ -18,6 +18,10 @@ Vite proxy, so the browser sees `/api/...` on port 5173.
 - [Authentication and CSRF](#authentication-and-csrf)
 - [Public endpoints](#public-endpoints)
 - [Admin endpoints](#admin-endpoints)
+- [Customer endpoints](#customer-endpoints)
+- [Public Space and embed endpoints](#public-space-and-embed-endpoints)
+- [Billing endpoints](#billing-endpoints)
+- [The Stripe webhook](#the-stripe-webhook)
 - [Data shapes](#data-shapes)
 
 ---
@@ -56,14 +60,18 @@ envelope:
 | Status | `code` | When |
 |---|---|---|
 | `400` | `VALIDATION_FAILED` | A field failed validation |
+| `400` | `INVALID_WEBHOOK_SIGNATURE` | A Stripe delivery whose signature did not verify, or whose event carried no identifier |
 | `401` | `AUTHENTICATION_FAILED` | The login was rejected — wrong username or password |
 | `401` | `UNAUTHENTICATED` | No session, or the session is no longer valid |
 | `403` | `FORBIDDEN` | Signed in but not permitted, or a missing/invalid CSRF token |
 | `404` | `NOT_FOUND` | No such testimonial |
 | `409` | `DUPLICATE_SUBMISSION` | An identical submission was made inside the 10-minute window |
 | `409` | `CONFLICT` | Acting on an already-deleted testimonial, or restoring a live one |
+| `409` | `PLAN_LIMIT_REACHED` | The account's plan does not allow this — too many Spaces, or a mutation on a read-only Space |
+| `409` | `SPACE_NOT_ACCEPTING` | The Space is not accepting submissions — it is closed, or it is at its testimonial limit |
 | `429` | `RATE_LIMITED` | Rate limit exceeded — always with a `Retry-After` header |
 | `500` | `INTERNAL_ERROR` | Unexpected — logged in full server-side, generic message to the client |
+| `503` | `BILLING_NOT_CONFIGURED` | A billing action on an installation without Stripe keys. Nothing changes and no plan moves |
 
 ---
 
@@ -196,12 +204,29 @@ X-XSRF-TOKEN: 6f8b9c2d1e4a7f30
 Without the header the request is refused with `403` and `code: FORBIDDEN`. The token is issued
 on the first response of any kind, so a client that reads it once can reuse it for the session.
 
-Two endpoints are **exempt**, and only two:
+Three endpoints are **exempt**, and only these:
 
 | Endpoint | Why |
 |---|---|
 | `POST /api/admin/session` | The browser has no token yet. Protected by the session-id regeneration on authentication instead. |
 | `POST /api/testimonials` | Anonymous — there are no credentials for an attacker to ride on. Guarded by rate limiting and the duplicate fingerprint instead. |
+| `POST /api/billing/webhook` | Authenticated by a Stripe **signature**, not by a session — so there is no ambient credential for an attacker to ride on. It lives on its own filter chain. See [The Stripe webhook](#the-stripe-webhook). |
+
+The **customer** chain (`/api/app/**`) has its own exemption list, because it has its own
+anonymous endpoints:
+
+| Endpoint | Why |
+|---|---|
+| `POST /api/app/auth/register` | No session yet. Protected by the session-id regeneration on authentication. |
+| `POST /api/app/auth/sign-in` | Same. |
+| `POST /api/app/auth/forgot-password` | Carries nothing that a forged request could use. The answer is the same whether or not the address exists. |
+| `POST /api/app/auth/reset-password` | Carries a single-use token in the body. |
+| `POST /api/app/auth/verify-email` | Carries a single-use token in the body. |
+| `/api/app/public/**` | The public Space pages and the submission endpoint are anonymous. Guarded by rate limiting and the honeypot field instead. |
+
+> **The CSRF exemption list and the `permitAll` list must match exactly.** The CSRF filter runs
+> *before* authorization, so an endpoint that is reachable without a session and is not exempt
+> from CSRF would answer `403` to a legitimate first-time visitor.
 
 ### Signing out
 
@@ -502,6 +527,401 @@ testimonial that is not deleted returns `409`.
 
 ---
 
+## Customer endpoints
+
+Every endpoint under `/api/app/**` requires a signed-in **customer** session and, on writes, the
+CSRF token. It carries no administrator role: the admin surface and the customer surface are
+separate filter chains, and a customer session grants nothing on `/api/admin/**`.
+
+The customer surface is **scoped to the signed-in account**. An account can only read and change
+its own Spaces, its own testimonials and its own billing state; there is no identifier in any
+request that lets one account reach another's.
+
+### `POST /api/app/auth/register`
+
+```http
+POST /api/app/auth/register
+Content-Type: application/json
+
+{
+  "email": "ada@example.com",
+  "displayName": "Ada",
+  "password": "correct horse battery staple"
+}
+```
+
+Returns `201` with the account. The account starts on the `FREE` plan with
+`subscriptionStatus: "NONE"`.
+
+### `POST /api/app/auth/sign-in`
+
+```http
+POST /api/app/auth/sign-in
+Content-Type: application/json
+
+{
+  "email": "ada@example.com",
+  "password": "correct horse battery staple"
+}
+```
+
+Returns `200` with the account. The response sets the same `SESSION` and `XSRF-TOKEN` cookies
+as the admin sign-in — one cookie pair, two separate sessions.
+
+### `POST /api/app/auth/sign-out`
+
+```http
+POST /api/app/auth/sign-out
+```
+
+Returns `204` and expires the session cookie, exactly as the admin sign-out does.
+
+### `GET /api/app/auth/me`
+
+The signed-in account, used by the SPA to restore the session on page load.
+
+```json
+{
+  "id": "b1a0f5a4-0000-4000-8000-000000000001",
+  "email": "ada@example.com",
+  "displayName": "Ada",
+  "emailVerified": true,
+  "plan": "FREE",
+  "subscriptionStatus": "NONE",
+  "cancelAtPeriodEnd": false,
+  "subscriptionPastDue": false,
+  "currentPeriodEnd": null
+}
+```
+
+The password hash, the Stripe identifiers and the Google subject are never included.
+
+### The remaining account endpoints
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/app/auth/verify-email?token=…` | Whether a verification token is still valid. The only `GET` that is not idempotent-by-omission |
+| `POST /api/app/auth/verify-email` | Confirms the address and signs the account in |
+| `POST /api/app/auth/forgot-password` | Starts a password reset. The answer is the same whether or not the address exists |
+| `POST /api/app/auth/reset-password` | Completes a reset |
+| `POST /api/app/auth/change-password` | Changes the password of a signed-in account |
+| `POST /api/app/auth/profile` | Changes the display name |
+
+### Spaces
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/app/spaces` | Every Space the account owns |
+| `POST /api/app/spaces` | Creates one. `409 PLAN_LIMIT_REACHED` once the account is at its plan's Space limit |
+| `GET /api/app/spaces/themes` | The theme catalogue. Each entry says whether it is premium |
+| `GET /api/app/spaces/{spaceId}` | One Space |
+| `PUT /api/app/spaces/{spaceId}` | Updates one Space. `409 PLAN_LIMIT_REACHED` on a read-only Space |
+| `DELETE /api/app/spaces/{spaceId}` | Deletes one Space. `409 PLAN_LIMIT_REACHED` on a read-only Space |
+
+> **A downgrade never deletes data.** An account that is downgraded keeps all its Spaces; the ones
+> beyond its plan's limit become **read-only** — they are listed, they still render, and they
+> still serve their submissions, but they cannot be updated or deleted. The oldest Spaces by
+> creation date keep their editability.
+
+### Testimonials in a Space
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/app/spaces/{spaceId}/testimonials` | The inbox. Filters: `search`, `favorite`, `wallOfLove`, `hidden`, `rating`; paged with `page` and `size` |
+| `PATCH /api/app/spaces/{spaceId}/testimonials/{id}` | Curation: `favorite`, `wallOfLove`, `visible` |
+| `PUT /api/app/spaces/{spaceId}/testimonials/{id}` | Edits the text of a testimonial |
+| `DELETE /api/app/spaces/{spaceId}/testimonials/{id}` | Deletes a testimonial |
+
+### The embed configuration
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/app/spaces/{spaceId}/embed` | The embed configuration and the snippet to paste |
+| `PUT /api/app/spaces/{spaceId}/embed` | Saves it. A premium option on a Free account is refused with `409 CONFLICT` |
+| `POST /api/app/spaces/{spaceId}/embed/rotate-token` | Issues a new embed token. The old snippet stops working |
+
+---
+
+## Public Space and embed endpoints
+
+These carry **no credentials** — the visitor collecting a testimonial is not signed in. They are
+scoped by the Space's slug or by its embed token.
+
+### `GET /api/app/public/spaces/{slug}`
+
+The public Space: its configuration, its wall, and whether it is accepting submissions.
+
+```json
+{
+  "slug": "adas-reviews",
+  "title": "Ada’s Reviews",
+  "subtitle": "What people say",
+  "theme": "basic",
+  "fieldCompany": false,
+  "fieldCompanyRequired": false,
+  "fieldSocial": false,
+  "fieldSocialRequired": false,
+  "fieldWebsite": false,
+  "fieldWebsiteRequired": false,
+  "fieldJobTitle": false,
+  "fieldJobTitleRequired": false,
+  "ratingEnabled": true,
+  "accepting": true
+}
+```
+
+It is deliberately **not** the owner's `SpaceResponse`: it carries no owner identifier, no
+`editable` flag and no slug-lock state. A visitor learns what to fill in and how the page looks,
+and nothing about the account that owns it.
+
+`accepting` is `false` when the Space is closed **or** when it has reached its owner's per-Space
+testimonial limit. It comes from the same check that refuses a submission, so the page can never
+offer a form that the server will reject.
+
+### `POST /api/app/public/spaces/{slug}/testimonials`
+
+Submits a testimonial to a Space. The fields the owner asked for are required, and the optional
+ones are absent from the response.
+
+```http
+POST /api/app/public/spaces/adas-reviews/testimonials
+Content-Type: application/json
+
+{
+  "name": "Grace",
+  "email": "grace@example.com",
+  "content": "Lovely work.",
+  "rating": 5,
+  "company": "Northwind",
+  "socialLink": "https://example.com",
+  "website": "https://example.com",
+  "jobTitle": "Engineer",
+  "consent": true,
+  "website2": ""
+}
+```
+
+| Field | Rules |
+|---|---|
+| `name` | Required, at most 100 characters |
+| `email` | Required, a valid address, at most 254 characters |
+| `content` | Required, at most 2000 characters |
+| `rating` | Optional, 1–5. Omitted when the Space has ratings off |
+| `company` / `jobTitle` | Optional, at most 120 characters. Only collected when the Space asks for them |
+| `socialLink` / `website` | Optional, at most 500 characters. Only collected when the Space asks for them |
+| `consent` | Optional. Never gates display |
+| `website2` | **The honeypot.** A hidden field that must stay empty |
+
+Returns `201` with `{ "id": "…", "submittedAt": "…" }`.
+
+> **The honeypot is the spam guard.** The field is hidden from people and visible to the bots that
+> fill in every input on a form. A submission that fills it in is refused. Together with the
+> per-IP rate limiting, it is what stands between the public form and a spam campaign.
+
+A Space that is not accepting submissions answers `409` with `code: SPACE_NOT_ACCEPTING` and the
+message *"This Space is not accepting responses at the moment."* — deliberately neutral, so the
+submitter learns nothing about the owner's plan or their testimonial count.
+
+### `GET /api/app/public/embeds/{token}`
+
+The testimonials an embed shows, in the embed's own layout and theme. The token is the embed's
+public identity; rotating it invalidates every snippet that used the old one.
+
+### `GET /embed/loveproof.js`
+
+The embed loader. It is a static script served by the backend, so a customer can paste the
+snippet on their own site without a build step.
+
+---
+
+## Billing endpoints
+
+Every endpoint under `/api/app/billing` requires a signed-in customer session, and the writes
+require the CSRF token.
+
+> **No endpoint here changes a plan.** Checkout, cancel and resume all ask *Stripe* to do
+> something and write nothing locally. The plan moves when Stripe's webhook says so — see
+> [The Stripe webhook](#the-stripe-webhook). This is what makes the upgrade unforgeable: a
+> customer who reaches the success URL has not paid anything as far as this server is concerned.
+
+### `GET /api/app/billing`
+
+The current plan, the subscription state, and the catalogue of both plans. The limits in the
+catalogue are the same numbers the server enforces, so the page a customer reads and the limit
+they hit cannot drift apart.
+
+```json
+{
+  "plan": "PREMIUM",
+  "subscriptionStatus": "active",
+  "cancelAtPeriodEnd": false,
+  "pastDue": false,
+  "currentPeriodEnd": "2026-12-08T13:34:07Z",
+  "billingConfigured": true,
+  "plans": [
+    {
+      "plan": "FREE",
+      "label": "Free",
+      "price": "Free",
+      "spaces": 3,
+      "testimonialsPerSpace": 100,
+      "features": [
+        "3 Spaces",
+        "100 testimonials per Space",
+        "Masonry embed",
+        "Light and dark mode"
+      ]
+    },
+    {
+      "plan": "PREMIUM",
+      "label": "Premium",
+      "price": "$9.99/month",
+      "spaces": 25,
+      "testimonialsPerSpace": 1000,
+      "features": [
+        "25 Spaces",
+        "1,000 testimonials per Space",
+        "Premium themes",
+        "Carousel embed",
+        "Background colour",
+        "Animation"
+      ]
+    }
+  ]
+}
+```
+
+`subscriptionStatus` uses Stripe's own vocabulary: `NONE`, `active`, `trialing`, `past_due`,
+`canceled`, `unpaid`, `incomplete`, `incomplete_expired` or `paused`. `NONE` means the account
+has never subscribed.
+
+`billingConfigured` is `false` on an installation without Stripe keys. The read still succeeds —
+the customer can still see their plan — but the upgrade button is unavailable and the billing
+actions answer `503 BILLING_NOT_CONFIGURED`.
+
+### `POST /api/app/billing/checkout`
+
+Creates a Stripe Checkout Session and returns its URL.
+
+```json
+{ "url": "https://checkout.stripe.com/c/pay/cs_test_a1B2…" }
+```
+
+The session is created for the Premium price configured on the installation, with the account's
+identifier attached as subscription metadata — which is how the webhook finds the account when
+the event arrives.
+
+### `POST /api/app/billing/cancel`
+
+Asks Stripe to cancel the subscription at the end of the period already paid for. Returns `204`.
+
+Nothing changes locally: the plan **stays Premium** until the period ends, and the account is
+only downgraded when Stripe reports the subscription as `canceled`.
+
+### `POST /api/app/billing/resume`
+
+Asks Stripe to resume a subscription that is set to end. Returns `204`. The local cancel flag
+clears when the webhook arrives.
+
+### `POST /api/app/billing/portal`
+
+Creates a Stripe Billing Portal session and returns its URL, for a customer who wants to manage
+their card details themselves.
+
+---
+
+## The Stripe webhook
+
+```http
+POST /api/billing/webhook
+Content-Type: application/json
+Stripe-Signature: t=1772992447,v1=5257a869e7ecebeda32affa62cdca3fa51cad7e77a0e56ff536d0ce8e108d8bd
+
+{ "id": "evt_1Q...", "type": "customer.subscription.updated", "data": { "object": { … } } }
+```
+
+This endpoint has **no session and no CSRF token**. It is authenticated by the Stripe signature
+and lives on its own filter chain, because its trust model is *a verified signature*, not *a
+session*.
+
+### What is accepted
+
+| Check | Rule |
+|---|---|
+| The signature | `HMAC-SHA256(webhook_secret, "<timestamp>.<raw body>")` must equal one of the header's `v1` values, compared in constant time |
+| The timestamp | Rejected when it is more than five minutes old, so a captured delivery cannot be replayed |
+| The event identifier | An event with no `id` is refused — without one it cannot be recorded in the ledger |
+
+The signature is computed over the **exact bytes Stripe sent**. The body is therefore read as
+`byte[]`, not as a `String`: decoding and re-encoding a string is byte-identical only for valid
+UTF-8.
+
+### What it answers
+
+| Outcome | Status | `code` |
+|---|---|---|
+| A verified event | `200` | — |
+| A signature that does not verify | `400` | `INVALID_WEBHOOK_SIGNATURE` |
+| An event with no identifier | `400` | `INVALID_WEBHOOK_SIGNATURE` |
+| A replayed event | `200` | — (and nothing is applied a second time) |
+| An event naming an unknown account | `200` | — (recorded as `NO_ACCOUNT`) |
+
+> **A replay answers `200` on purpose.** Stripe retries anything it does not get a `200` for. A
+> replayed event is a success — the work has already been done — so refusing it would only make
+> Stripe deliver it again.
+
+### What it does
+
+| Event | Effect |
+|---|---|
+| `customer.subscription.created` / `.updated` | The subscription status is mapped and applied |
+| `customer.subscription.deleted` | The subscription ends: `canceled`, and the plan becomes `FREE` |
+| `checkout.session.completed` | The subscription is retrieved from Stripe and applied |
+| `invoice.payment_failed` / `.payment_succeeded` | Recorded, but the plan is **not** changed |
+| Anything else | Recorded as `IGNORED` |
+
+### The status is the authority
+
+The plan is a pure function of the subscription status: `PREMIUM ⇔ status ∈ {active, trialing,
+past_due}`. Everything the product promises falls out of that one rule.
+
+| Stripe status | `subscriptionStatus` | Plan | Meaning |
+|---|---|---|---|
+| `active` | `active` | **Premium** | Paying |
+| `trialing` | `trialing` | **Premium** | In a trial |
+| `past_due` | `past_due` | **Premium** | A renewal failed. Access continues while Stripe retries |
+| `canceled` | `canceled` | Free | The period ran out after a cancellation, or it was cancelled |
+| `unpaid` | `unpaid` | Free | The payment failed for good |
+| `incomplete` | `incomplete` | Free | The first payment never completed |
+| `incomplete_expired` | `incomplete_expired` | Free | The first payment expired |
+| `paused` | `paused` | Free | The subscription is paused |
+
+`cancel_at_period_end = true` is **not** a downgrade. The subscription is still `active`, so the
+plan stays Premium, the end date is recorded, and the billing page shows the date with a Resume
+button. The downgrade happens when Stripe later reports the subscription as `canceled`.
+
+`past_due` and `canceled` are both "the plan is Free" from the customer's point of view, but they
+are recorded faithfully and stay distinguishable, because they are different facts.
+
+### Idempotency
+
+Stripe delivers an event more than once, and out of order. Each delivery is recorded in the
+`stripe_event` ledger, keyed on Stripe's own event identifier. The ledger row is written in the
+**same transaction** as the effect, so a replayed event cannot be inserted, its transaction rolls
+back, and no effect is applied twice.
+
+An old event delivered after a newer one does not resurrect the old state: the ledger records
+what happened, and the plan follows the most recent status Stripe reported.
+
+### The reconciliation job
+
+The webhook is the primary mechanism. A scheduled job re-checks every live subscription against
+Stripe every hour, which covers a delivery that was lost outright and the case where a period
+ended without an event arriving. It applies the state through **the same method** the webhook
+uses, so the two cannot disagree.
+
+---
+
 ## Data shapes
 
 ### `Testimonial`
@@ -557,6 +977,56 @@ never sent to a client.
   "averageRating": 4.4
 }
 ```
+
+### `Billing`
+
+```json
+{
+  "plan": "PREMIUM",
+  "subscriptionStatus": "active",
+  "cancelAtPeriodEnd": false,
+  "pastDue": false,
+  "currentPeriodEnd": "2026-12-08T13:34:07Z",
+  "billingConfigured": true,
+  "plans": []
+}
+```
+
+See [Billing endpoints](#billing-endpoints) for the plan catalogue and the meaning of each field.
+
+### `UserResponse`
+
+```json
+{
+  "id": "b1a0f5a4-0000-4000-8000-000000000001",
+  "email": "ada@example.com",
+  "displayName": "Ada",
+  "emailVerified": true,
+  "plan": "FREE",
+  "subscriptionStatus": "NONE",
+  "cancelAtPeriodEnd": false,
+  "subscriptionPastDue": false,
+  "currentPeriodEnd": null
+}
+```
+
+### `EmbedConfig`
+
+```json
+{
+  "spaceId": "c2b1f6b5-0000-4000-8000-000000000002",
+  "embedToken": "a-token-1234",
+  "layout": "masonry",
+  "themeMode": "light",
+  "backgroundColor": null,
+  "animation": false,
+  "scriptUrl": "http://localhost:5173/embed/loveproof.js",
+  "dataUrl": "http://localhost:5173/api/app/public/embeds/a-token-1234"
+}
+```
+
+`scriptUrl` and `dataUrl` are absolute URLs on the installation, so the owner can copy the
+snippet without having to know how the address is put together.
 
 ---
 

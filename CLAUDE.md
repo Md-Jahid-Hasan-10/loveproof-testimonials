@@ -455,14 +455,18 @@ Every error response uses the same shape:
 | Status | `code` | When |
 |---|---|---|
 | `400` | `VALIDATION_FAILED` | A field failed validation |
+| `400` | `INVALID_WEBHOOK_SIGNATURE` | A Stripe delivery whose signature did not verify, or whose event carried no identifier |
 | `401` | `AUTHENTICATION_FAILED` | The login was rejected — wrong username or password |
 | `401` | `UNAUTHENTICATED` | No session, or the session is no longer valid |
 | `403` | `FORBIDDEN` | Authenticated but not permitted, or missing/invalid CSRF token |
 | `404` | `NOT_FOUND` | Not found |
 | `409` | `DUPLICATE_SUBMISSION` | Duplicate submission |
 | `409` | `CONFLICT` | Acting on an already-deleted record, or restoring a live one |
+| `409` | `PLAN_LIMIT_REACHED` | The account's plan does not allow this — too many Spaces, or a mutation on a read-only Space |
+| `409` | `SPACE_NOT_ACCEPTING` | The Space is not accepting submissions (closed, or at its testimonial limit) |
 | `429` | `RATE_LIMITED` | Rate limited — always with a `Retry-After` header |
 | `500` | `INTERNAL_ERROR` | Unexpected — logged in full server-side, generic message to the client |
+| `503` | `BILLING_NOT_CONFIGURED` | A billing action on an installation without Stripe keys. Nothing changes and no plan moves |
 
 ### 6.3 Security model
 
@@ -479,10 +483,34 @@ Every error response uses the same shape:
 - No admin endpoint may be reachable without both an authenticated session and the admin role.
 - The public API exposes approved, non-deleted testimonials only — including in counts, error
   messages, and pagination totals.
-- **Two endpoints are CSRF-exempt**, and only two: `POST /api/admin/session` (the browser has no
-  token yet; the session-id regeneration is what protects it) and `POST /api/testimonials` (it is
-  anonymous, so there are no credentials to ride on; rate limiting and the duplicate fingerprint
-  guard it instead). Every other write needs the token.
+- **CSRF exemptions, and only these.** `POST /api/admin/session` (the browser has no token yet; the
+  session-id regeneration is what protects it), `POST /api/testimonials` (it is anonymous, so there
+  are no credentials to ride on; rate limiting and the duplicate fingerprint guard it instead), and
+  `POST /api/billing/webhook` (it is authenticated by a **Stripe signature** rather than by a
+  session, so there is no ambient credential for an attacker to ride on). Every other write needs
+  the token.
+- **The webhook has its own filter chain.** `BillingSecurityConfig` matches `/api/billing/**`,
+  disables CSRF, and permits everything: the trust model there is *a verified signature*, not *a
+  session*. A signature that does not verify is refused with `400 INVALID_WEBHOOK_SIGNATURE`
+  before anything is acted on, and the timestamp in the header is rejected when it is more than
+  five minutes old, so a captured delivery cannot be replayed. The signature is computed over the
+  **exact bytes** Stripe sent, so the controller takes the body as `byte[]` — a `String` body
+  would be decoded and re-encoded, which is byte-identical only for valid UTF-8.
+- **The webhook is idempotent.** Stripe delivers an event more than once and out of order. The
+  ledger row (`stripe_event`, keyed on Stripe's event id) is written in the same transaction as
+  the effect, so a replay cannot be inserted and no effect is applied twice. The endpoint answers
+  `200` for a replay, so Stripe does not retry it.
+- **The plan is a pure function of the subscription status.** `PREMIUM ⇔ status ∈ {active,
+  trialing, past_due}`. `cancel_at_period_end` never downgrades, so cancelling keeps Premium
+  until the period ends; a failed renewal shows "past due" and keeps Premium; only a
+  `canceled` or `unpaid` status ends the subscription. One method
+  (`AppUser.applySubscriptionState`) applies a whole subscription state, and both the webhook and
+  the reconciliation job go through it, so the two can never disagree.
+- **No endpoint changes a plan directly.** The checkout, cancel and resume endpoints ask Stripe
+  to do something and write nothing locally; the webhook (or the reconciliation job, which is the
+  backstop for a delivery that never arrived) is what moves the plan. The success redirect the
+  browser lands on after paying starts a poll and nothing else — treating it as a purchase would
+  let anybody upgrade themselves by visiting a URL.
 - **Logout must expire the cookie, not just invalidate the session.** A cookie is only replaced when
   the name, path and domain match, so the logout response sets an expired `SESSION` cookie with the
   same attributes.
@@ -541,6 +569,64 @@ POST   /api/admin/testimonials/{id}/restore             # ✓ Phase 3
 > **The moderation endpoints are protected, not gated.** Every route above requires an
 > authenticated session with the `ADMIN` role; every write additionally requires the CSRF token.
 > There is no property that disables them.
+
+Customer (session + CSRF on writes). `/api/app/**` is a separate filter chain from the admin
+one; it carries no administrator role and is scoped to the signed-in account:
+
+```
+POST   /api/app/auth/register             # ✓ Phase 1
+POST   /api/app/auth/sign-in              # ✓ Phase 1
+POST   /api/app/auth/sign-out             # ✓ Phase 1
+GET    /api/app/auth/me                   # ✓ Phase 1
+GET    /api/app/auth/verify-email?token=  # ✓ Phase 1
+POST   /api/app/auth/verify-email         # ✓ Phase 1
+POST   /api/app/auth/forgot-password      # ✓ Phase 1
+POST   /api/app/auth/reset-password       # ✓ Phase 1
+POST   /api/app/auth/change-password      # ✓ Phase 1
+POST   /api/app/auth/profile              # ✓ Phase 1
+
+GET    /api/app/spaces                    # ✓ Phase 2
+POST   /api/app/spaces                    # ✓ Phase 2 — 409 PLAN_LIMIT_REACHED at the Space limit
+GET    /api/app/spaces/themes             # ✓ Phase 3
+GET    /api/app/spaces/{spaceId}          # ✓ Phase 2
+PUT    /api/app/spaces/{spaceId}          # ✓ Phase 2 — 409 PLAN_LIMIT_REACHED on a read-only Space; 409 CONFLICT on a premium theme
+DELETE /api/app/spaces/{spaceId}          # ✓ Phase 2 — 409 PLAN_LIMIT_REACHED on a read-only Space
+
+GET    /api/app/spaces/{spaceId}/testimonials?page=&size=&search=&favorite=&wallOfLove=&hidden=&rating=   # ✓ Phase 5
+PATCH  /api/app/spaces/{spaceId}/testimonials/{id}   # ✓ Phase 5
+PUT    /api/app/spaces/{spaceId}/testimonials/{id}   # ✓ Phase 5
+DELETE /api/app/spaces/{spaceId}/testimonials/{id}   # ✓ Phase 5
+
+GET    /api/app/spaces/{spaceId}/embed                # ✓ Phase 6
+PUT    /api/app/spaces/{spaceId}/embed                # ✓ Phase 6 — premium options refused on Free
+POST   /api/app/spaces/{spaceId}/embed/rotate-token   # ✓ Phase 6
+```
+
+Public per-Space (no credentials — the visitor is not signed in):
+
+```
+GET    /api/app/public/spaces/{slug}                  # ✓ Phase 4
+POST   /api/app/public/spaces/{slug}/testimonials     # ✓ Phase 4 — 409 SPACE_NOT_ACCEPTING
+GET    /api/app/public/embeds/{token}                 # ✓ Phase 6
+GET    /embed/loveproof.js                             # ✓ Phase 6 — the embed loader script
+```
+
+Billing (session + CSRF on writes). `billingConfigured: false` when Stripe is not set up; the
+checkout and portal endpoints then answer `503 BILLING_NOT_CONFIGURED`:
+
+```
+GET    /api/app/billing                 # ✓ Phase 7 — the plan, the status and the plan catalogue
+POST   /api/app/billing/checkout        # ✓ Phase 7 — a Stripe Checkout URL; changes no plan
+POST   /api/app/billing/cancel          # ✓ Phase 7 — cancel at period end; changes no plan
+POST   /api/app/billing/resume          # ✓ Phase 7 — resume; changes no plan
+POST   /api/app/billing/portal          # ✓ Phase 7 — the Stripe Billing Portal URL
+```
+
+Webhook (signature-verified, no session, CSRF-exempt, its own filter chain):
+
+```
+POST   /api/billing/webhook             # ✓ Phase 7 — Stripe-Signature header; the only writer of a plan
+```
 
 ---
 
