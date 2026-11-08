@@ -62,6 +62,7 @@ describe('the customer route guard', () => {
         email: 'ada@example.com',
         displayName: 'Ada',
         emailVerified: true,
+    hasPassword: true,
         plan: 'FREE',
         subscriptionStatus: 'NONE',
         cancelAtPeriodEnd: false,

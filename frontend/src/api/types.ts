@@ -129,6 +129,11 @@ export interface Customer {
   email: string
   displayName: string
   emailVerified: boolean
+  /**
+   * Whether the account has a password to change. A Google-only account has
+   * none, so the settings page offers no password form for it.
+   */
+  hasPassword: boolean
   plan: Plan
   subscriptionStatus: SubscriptionStatus
   cancelAtPeriodEnd: boolean

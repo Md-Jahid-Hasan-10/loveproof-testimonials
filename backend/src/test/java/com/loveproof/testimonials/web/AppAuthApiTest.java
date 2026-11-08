@@ -64,6 +64,7 @@ class AppAuthApiTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.email").value(EMAIL))
                 .andExpect(jsonPath("$.displayName").value("Ada"))
                 .andExpect(jsonPath("$.emailVerified").value(false))
+                .andExpect(jsonPath("$.hasPassword").value(true))
                 .andExpect(jsonPath("$.plan").value("FREE"));
 
         assertThat(userRepository.count()).isEqualTo(1);

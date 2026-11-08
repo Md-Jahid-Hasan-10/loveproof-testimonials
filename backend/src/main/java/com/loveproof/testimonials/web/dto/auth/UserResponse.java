@@ -1,6 +1,7 @@
 package com.loveproof.testimonials.web.dto.auth;
 
 import com.loveproof.testimonials.domain.AppUser;
+import com.loveproof.testimonials.domain.AuthProvider;
 import com.loveproof.testimonials.domain.Plan;
 import com.loveproof.testimonials.domain.SubscriptionStatus;
 
@@ -15,6 +16,7 @@ public record UserResponse(
         String email,
         String displayName,
         boolean emailVerified,
+        boolean hasPassword,
         Plan plan,
         SubscriptionStatus subscriptionStatus,
         boolean cancelAtPeriodEnd,
@@ -33,6 +35,11 @@ public record UserResponse(
                 user.getEmail(),
                 user.getDisplayName(),
                 user.isEmailVerified(),
+                // Whether there is a password to change. The account settings
+                // page offers the password form only when there is one, so a
+                // Google-only account is not shown a form that could not
+                // work. The hash itself is never sent.
+                user.getAuthProvider() != AuthProvider.GOOGLE,
                 user.getPlan(),
                 user.getSubscriptionStatus(),
                 user.isCancelAtPeriodEnd(),
