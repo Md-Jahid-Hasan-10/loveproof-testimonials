@@ -31,9 +31,9 @@ class MigrationTest extends PostgresIntegrationTest {
     @Test
     void allMigrationsAppliedSuccessfully() {
         Integer applied = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM flyway_schema_history WHERE version IN ('1', '2', '3', '4', '5', '6') AND success = TRUE",
+                "SELECT COUNT(*) FROM flyway_schema_history WHERE version IN ('1', '2', '3', '4', '5', '6', '7') AND success = TRUE",
                 Integer.class);
-        assertThat(applied).isEqualTo(6);
+        assertThat(applied).isEqualTo(7);
 
         String description = jdbcTemplate.queryForObject(
                 "SELECT description FROM flyway_schema_history WHERE version = '1'", String.class);
@@ -48,7 +48,7 @@ class MigrationTest extends PostgresIntegrationTest {
 
         Integer versions = jdbcTemplate.queryForObject(
                 "SELECT COUNT(DISTINCT version) FROM flyway_schema_history", Integer.class);
-        assertThat(versions).isEqualTo(6);
+        assertThat(versions).isEqualTo(7);
     }
 
     /**
@@ -227,6 +227,91 @@ class MigrationTest extends PostgresIntegrationTest {
                 String.class);
 
         assertThat(type).isEqualTo("character");
+    }
+
+    /**
+     * The subscription status is constrained to Stripe's own vocabulary.
+     */
+    @Test
+    void anUnknownSubscriptionStatusIsRejected() {
+        assertThatThrownBy(() -> jdbcTemplate.execute("""
+                INSERT INTO app_user (
+                    id, email, display_name, auth_provider, password_hash,
+                    plan, subscription_status, enabled, created_at, updated_at
+                ) VALUES (
+                    gen_random_uuid(), 'status@example.com', 'Test', 'PASSWORD', 'x',
+                    'FREE', 'not_a_status', TRUE, now(), now()
+                )
+                """))
+                .isInstanceOf(DataIntegrityViolationException.class)
+                .hasMessageContaining("ck_app_user_subscription_status");
+    }
+
+    /**
+     * Every status Stripe can report has to be accepted, so the constraint
+     * cannot quietly narrow the vocabulary.
+     */
+    @Test
+    void everyStripeSubscriptionStatusIsAccepted() {
+        for (String status : new String[] {
+                "NONE", "active", "trialing", "past_due", "canceled",
+                "unpaid", "incomplete", "incomplete_expired", "paused" }) {
+            jdbcTemplate.update("""
+                    INSERT INTO app_user (
+                        id, email, display_name, auth_provider, password_hash,
+                        plan, subscription_status, enabled, created_at, updated_at
+                    ) VALUES (
+                        gen_random_uuid(), ?, 'Test', 'PASSWORD', 'x',
+                        'FREE', ?, TRUE, now(), now()
+                    )
+                    """, "status-" + status + "@example.com", status);
+        }
+    }
+
+    /**
+     * The ledger's primary key is the idempotency guard, so the same event
+     * cannot be recorded twice.
+     */
+    @Test
+    void theSameStripeEventCannotBeRecordedTwice() {
+        jdbcTemplate.update("""
+                INSERT INTO stripe_event (event_id, event_type, outcome, received_at)
+                VALUES ('evt_replay_test', 'customer.subscription.updated', 'IGNORED', now())
+                """);
+
+        assertThatThrownBy(() -> jdbcTemplate.execute("""
+                INSERT INTO stripe_event (event_id, event_type, outcome, received_at)
+                VALUES ('evt_replay_test', 'customer.subscription.updated', 'APPLIED', now())
+                """))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    /**
+     * A subscription belongs to exactly one account: two accounts claiming
+     * the same one is refused by the database, not merely by the code.
+     */
+    @Test
+    void aSubscriptionCannotBelongToTwoAccounts() {
+        UUID first = UUID.randomUUID();
+        UUID second = UUID.randomUUID();
+        String subscriptionId = "sub_shared_test";
+
+        jdbcTemplate.update("""
+                INSERT INTO app_user (
+                    id, email, display_name, auth_provider, password_hash,
+                    plan, stripe_subscription_id, enabled, created_at, updated_at
+                ) VALUES (?, 'first@example.com', 'First', 'PASSWORD', 'x',
+                          'FREE', ?, TRUE, now(), now())
+                """, first, subscriptionId);
+
+        assertThatThrownBy(() -> jdbcTemplate.update("""
+                INSERT INTO app_user (
+                    id, email, display_name, auth_provider, password_hash,
+                    plan, stripe_subscription_id, enabled, created_at, updated_at
+                ) VALUES (?, 'second@example.com', 'Second', 'PASSWORD', 'x',
+                          'FREE', ?, TRUE, now(), now())
+                """, second, subscriptionId))
+                .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test

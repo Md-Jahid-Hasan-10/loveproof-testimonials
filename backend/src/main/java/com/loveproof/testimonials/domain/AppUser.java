@@ -59,6 +59,17 @@ public class AppUser {
     @Column(name = "stripe_subscription_id", length = 255)
     private String stripeSubscriptionId;
 
+    /**
+     * The subscription status, stored as Stripe's own lowercase vocabulary.
+     *
+     * <p>The plan is derived from this rather than being decided separately,
+     * so the webhook and the reconciliation job cannot disagree about which
+     * accounts are Premium.
+     */
+    @jakarta.persistence.Convert(converter = SubscriptionStatusConverter.class)
+    @Column(name = "subscription_status", nullable = false, length = 32)
+    private SubscriptionStatus subscriptionStatus = SubscriptionStatus.NONE;
+
     @Column(name = "cancel_at_period_end", nullable = false)
     private boolean cancelAtPeriodEnd;
 
@@ -172,6 +183,45 @@ public class AppUser {
 
     public void setStripeSubscriptionId(String stripeSubscriptionId) {
         this.stripeSubscriptionId = stripeSubscriptionId;
+    }
+
+    public SubscriptionStatus getSubscriptionStatus() {
+        return subscriptionStatus;
+    }
+
+    public void setSubscriptionStatus(SubscriptionStatus subscriptionStatus) {
+        this.subscriptionStatus = subscriptionStatus == null ? SubscriptionStatus.NONE : subscriptionStatus;
+    }
+
+    /**
+     * Applies a whole subscription state at once.
+     *
+     * <p>This is the only place a plan changes. The status is the single
+     * input, and the plan, the past-due flag and the cancellation flag are
+     * all derived from it here rather than being set by each caller. That is
+     * what stops the webhook and the reconciliation job from reaching
+     * different conclusions about the same subscription (PRD §4.9).
+     *
+     * <p>The cancellation flag is a fact about the subscription rather than
+     * about the status: a subscription that is still running but ends at the
+     * close of the period is still Premium, and still says so.
+     *
+     * @param status            the subscription status
+     * @param cancelAtPeriodEnd whether the subscription ends at the close of
+     *                          the paid period
+     * @param periodEnd         when the paid period ends
+     */
+    public void applySubscriptionState(
+            SubscriptionStatus status,
+            boolean cancelAtPeriodEnd,
+            Instant periodEnd) {
+        SubscriptionStatus resolved = status == null ? SubscriptionStatus.NONE : status;
+
+        this.subscriptionStatus = resolved;
+        this.cancelAtPeriodEnd = cancelAtPeriodEnd;
+        this.currentPeriodEnd = periodEnd;
+        this.subscriptionPastDue = resolved == SubscriptionStatus.PAST_DUE;
+        this.plan = resolved.grantsPremium() ? Plan.PREMIUM : Plan.FREE;
     }
 
     public boolean isCancelAtPeriodEnd() {

@@ -1,5 +1,6 @@
 package com.loveproof.testimonials.repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -43,4 +44,30 @@ public interface AppUserRepository extends JpaRepository<AppUser, UUID> {
      * @return the number of matches
      */
     long countByEmailIgnoreCase(String email);
+
+    /**
+     * Finds an account by its Stripe customer identifier.
+     *
+     * @param customerId the Stripe customer identifier
+     * @return the account, or empty
+     */
+    Optional<AppUser> findByStripeCustomerId(String customerId);
+
+    /**
+     * Finds an account by its Stripe subscription identifier.
+     *
+     * @param subscriptionId the Stripe subscription identifier
+     * @return the account, or empty
+     */
+    Optional<AppUser> findByStripeSubscriptionId(String subscriptionId);
+
+    /**
+     * Lists the accounts that have a subscription.
+     *
+     * <p>Used by the reconciliation job, which re-checks every live
+     * subscription to cover a webhook that never arrived.
+     *
+     * @return the accounts
+     */
+    List<AppUser> findByStripeSubscriptionIdIsNotNull();
 }
