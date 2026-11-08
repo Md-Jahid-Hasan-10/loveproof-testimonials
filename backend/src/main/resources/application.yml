@@ -132,6 +132,15 @@ loveproof:
     # How long the job waits before its first run. A deployment that has just
     # started should not immediately call Stripe for every subscription.
     reconcile-initial-delay-ms: ${LOVEPROOF_BILLING_RECONCILE_INITIAL_DELAY_MS:60000}
+  mail:
+    # The SMTP host. When this is empty -- the default -- the application
+    # logs the verification and password-reset emails instead of sending
+    # them, so it runs with no mail server at all and the link is in the
+    # backend's output.
+    smtp:
+      host: ${LOVEPROOF_MAIL_SMTP_HOST:}
+    # The address the outgoing mail comes from.
+    from: ${LOVEPROOF_MAIL_FROM:no-reply@localhost}
 
 logging:
   level:

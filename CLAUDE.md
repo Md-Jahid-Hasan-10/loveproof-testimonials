@@ -80,7 +80,8 @@ com.loveproof.testimonials
 │                  #   PublicSpaceController, PublicEmbedController, EmbedScriptController,
 │                  #   StripeWebhookController
 ├── config/        # ✓ ClockConfig, SecurityConfig, SecurityHeadersConfig, Jackson, CsrfCookieFilter,
-│                  #   AppSecurityConfig, BillingSecurityConfig, StripeProperties, CurrentUser
+│                  #   AppSecurityConfig, BillingSecurityConfig, StripeProperties, CurrentUser,
+│                  #   SchedulingConfig, MailConfiguredCondition, MailNotConfiguredCondition
 └── exception/     # ✓ NotFoundException, ConflictException, DuplicateTestimonialException,
                      PlanLimitExceededException, BillingNotConfiguredException,
                      InvalidWebhookSignatureException, SpaceNotAcceptingException
@@ -408,6 +409,16 @@ Migration rules:
   `Set-Cookie`, so a MockMvc test can never assert on the session cookie's attributes. Test cookie
   behaviour against real embedded Tomcat (`@SpringBootTest(webEnvironment = RANDOM_PORT)` +
   `TestRestTemplate`); see `AdminSessionCookieTest`.
+- **Exactly one `MailSender` may be in the context.** `SmtpMailSender` and `LoggingMailSender` are
+  both conditional on `loveproof.mail.smtp.host`, on conditions that are exact complements
+  (`MailConfiguredCondition` / `MailNotConfiguredCondition`). Two senders would make the injection
+  point in `AuthService` ambiguous and the application would refuse to start. Note that
+  `@ConditionalOnProperty` treats an **empty string as present**, so the "is it configured?" test
+  has to be for a non-blank value, not for the property's presence — that is why the two custom
+  conditions exist. See `MailSenderSelectionTest`.
+- **The SMTP host is optional, and the default is "log the mail".** With no host configured, the
+  verification and password-reset emails are written to the log instead of being sent, so the
+  application runs with no mail server. The link is in the backend's output.
 
 ### 5.3 Frontend (TypeScript / React)
 

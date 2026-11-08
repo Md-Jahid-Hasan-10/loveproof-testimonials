@@ -2,19 +2,23 @@ package com.loveproof.testimonials.service.mail;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Conditional;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Component;
 
+import com.loveproof.testimonials.config.MailConfiguredCondition;
+
 /**
  * The mail sender used when an SMTP server is configured.
  *
- * <p>Only registered when {@code loveproof.mail.smtp.host} is set, so the
- * application falls back to {@link LoggingMailSender} otherwise.
+ * <p>Only registered when {@code loveproof.mail.smtp.host} has a non-blank
+ * value, so the application falls back to {@link LoggingMailSender}
+ * otherwise. The two conditions are exclusive, so there is always exactly
+ * one mail sender in the context.
  */
 @Component
-@ConditionalOnProperty(name = "loveproof.mail.smtp.host")
+@Conditional(MailConfiguredCondition.class)
 public class SmtpMailSender implements MailSender {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SmtpMailSender.class);
