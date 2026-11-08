@@ -72,37 +72,58 @@ public class AppAuthController {
     /**
      * Registers an account.
      *
-     * @param request the registration
+     * <p>The new account is signed in immediately. It is created
+     * <em>unverified</em> -- the backend emails a verification link -- but it
+     * is a real session, so the customer lands on the dashboard instead of
+     * being bounced back to the sign-in page.
+     *
+     * @param request      the registration
+     * @param httpRequest  the request, for the session
+     * @param httpResponse the response, for the session cookie
      * @return the account
      */
     @PostMapping("/register")
-    public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<UserResponse> register(@Valid @RequestBody RegisterRequest request,
+            HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
         AppUser user = authService.register(request.email(), request.password(), request.displayName());
+        establishSession(user, httpRequest, httpResponse);
         return ResponseEntity.status(HttpStatus.CREATED).body(UserResponse.from(user));
     }
 
     /**
      * Signs in.
      *
-     * @param request the credentials
-     * @param httpRequest the request, for the session
+     * @param request       the credentials
+     * @param httpRequest   the request, for the session
+     * @param httpResponse  the response, for the session cookie
      * @return the account
      */
     @PostMapping("/sign-in")
     public UserResponse signIn(@Valid @RequestBody SignInRequest request,
             HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
         AppUser user = authService.signIn(request.email(), request.password());
+        establishSession(user, httpRequest, httpResponse);
+        return UserResponse.from(user);
+    }
 
-        // The session is written by hand rather than through Spring's form
-        // login, because the API is JSON: there is no form to submit and no
-        // success handler to run.
+    /**
+     * Writes the signed-in state to the customer session.
+     *
+     * <p>The session is written by hand rather than through Spring's form
+     * login, because the API is JSON: there is no form to submit and no
+     * success handler to run.
+     *
+     * @param user          the signed-in account
+     * @param httpRequest   the request
+     * @param httpResponse  the response, for the session cookie
+     */
+    private void establishSession(AppUser user,
+            HttpServletRequest httpRequest, HttpServletResponse httpResponse) {
         var authentication = new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(
                 user.getId().toString(), null, java.util.List.of(
                         new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_USER")));
         SecurityContextHolder.getContext().setAuthentication(authentication);
         appSecurityContextRepository.saveContext(SecurityContextHolder.getContext(), httpRequest, httpResponse);
-
-        return UserResponse.from(user);
     }
 
     /**

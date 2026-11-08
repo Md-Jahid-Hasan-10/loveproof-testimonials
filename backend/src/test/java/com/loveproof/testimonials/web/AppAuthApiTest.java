@@ -139,6 +139,31 @@ class AppAuthApiTest extends PostgresIntegrationTest {
     }
 
     @Test
+    @DisplayName("registering leaves the new customer signed in")
+    void registeringLeavesTheNewCustomerSignedIn() throws Exception {
+        // The PRD requires that a new user can "register ... and reach the
+        // dashboard". Registering therefore has to establish a session: an
+        // account that exists but cannot authenticate is a customer who lands
+        // on the dashboard and is immediately refused by every call it makes.
+        MockHttpSession session = (MockHttpSession) mockMvc.perform(post("/api/app/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"email\":\"" + EMAIL + "\",\"password\":\"" + PASSWORD + "\",\"displayName\":\"Ada\"}"))
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getRequest()
+                .getSession(false);
+
+        assertThat(session)
+                .as("registering must create a session")
+                .isNotNull();
+
+        // The session has to authenticate, not merely exist.
+        mockMvc.perform(get("/api/app/auth/me").session(session))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value(EMAIL));
+    }
+
+    @Test
     @DisplayName("the current customer endpoint refuses an anonymous caller")
     void theCurrentCustomerEndpointRefusesAnAnonymousCaller() throws Exception {
         mockMvc.perform(get("/api/app/auth/me"))

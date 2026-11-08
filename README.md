@@ -18,7 +18,7 @@ share the database and the deployment but not their sessions.
 > **Status: the whole PRD build order is complete and verified.** Accounts and email verification,
 > the dashboard shell and Spaces management, the creation wizard, the public submission page, the
 > curation inbox, the Wall of Love and the embed generator, Stripe billing with plan-limit
-> enforcement, and the dashboard analytics. **360 backend tests, 218 frontend tests, 0 failures.**
+> enforcement, and the dashboard analytics. **361 backend tests, 222 frontend tests, 0 failures.**
 
 ---
 
@@ -378,7 +378,7 @@ cd frontend && npm run lint   # frontend: ESLint
 cd frontend && npm run build  # frontend: type-check + production bundle + budget check
 ```
 
-**360 backend tests and 218 frontend tests, 0 failures.**
+**361 backend tests and 222 frontend tests, 0 failures.**
 
 The backend suite runs against a **real PostgreSQL 16 instance via Testcontainers**, so Flyway
 migrations, CHECK constraints and partial indexes are exercised for real rather than against an
@@ -530,6 +530,8 @@ submissions accepted on their public page either.
 
 | Symptom | Cause | Fix |
 |---|---|---|
+| **"Registration failed — No endpoint matches this request"** | The backend is running an **old build** from before the customer surface existed, so every `/api/app/**` route 404s. | Restart the backend. `mvn spring-boot:run` does not hot-reload — a backend started before a code change keeps serving the old classes. To check which build you have: `curl -X POST localhost:8080/api/app/auth/register -H 'Content-Type: application/json' -d '{}'` answers `400 VALIDATION_FAILED` on a current build and `404` on a stale one. |
+| The dashboard says "Your session has expired" | The session was not established. | Sign out and sign in again; if it persists, restart the backend so the current build is loaded. |
 | The backend exits with `Port 8080 was already in use` | Something else holds the port. | Stop it, or run the backend on another port with `SERVER_PORT=8099` and point the SPA at it with `VITE_PROXY_TARGET=http://localhost:8099`. |
 | The backend exits with a Flyway or datasource error | The database is not up yet, or the credentials differ. | `docker compose ps` and `docker compose exec db pg_isready -U loveproof -d loveproof`. Check `SPRING_DATASOURCE_*` in `.env`. |
 | The SPA shows 404s or a blank page on `/app` | The backend is not running, so the Vite proxy has nothing to proxy to. | Check <http://localhost:8080/api/health> first. |

@@ -419,6 +419,11 @@ Migration rules:
 - **The SMTP host is optional, and the default is "log the mail".** With no host configured, the
   verification and password-reset emails are written to the log instead of being sent, so the
   application runs with no mail server. The link is in the backend's output.
+- **Registering must establish the session.** `POST /api/app/auth/register` writes the signed-in
+  state to the customer session, exactly as the sign-in does — the PRD requires that a new user
+  can "register … and reach the dashboard". The account is created *unverified*, but it is signed
+  in. Without this the frontend redirects to the dashboard and every call it makes is refused with
+  "Your session has expired". See `AppAuthApiTest.registeringLeavesTheNewCustomerSignedIn`.
 
 ### 5.3 Frontend (TypeScript / React)
 

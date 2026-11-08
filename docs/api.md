@@ -553,6 +553,12 @@ Content-Type: application/json
 Returns `201` with the account. The account starts on the `FREE` plan with
 `subscriptionStatus: "NONE"`.
 
+The response sets the same `SESSION` and `XSRF-TOKEN` cookies as the sign-in: **registering
+signs the new customer in.** The account is created *unverified* — the backend emails a
+verification link — but it is a real session, so the customer lands on the dashboard rather than
+being bounced back to the sign-in page. The PRD requires exactly this: a new user can "register
+… and reach the dashboard".
+
 ### `POST /api/app/auth/sign-in`
 
 ```http
