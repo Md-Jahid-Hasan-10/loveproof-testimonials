@@ -245,6 +245,47 @@ export interface UpdateSpacePayload {
 }
 
 /**
+ * One day's bucket on the dashboard chart.
+ *
+ * The date is a UTC day, so the same account sees the same chart no matter
+ * where in the world they are looking at it from.
+ */
+export interface DailyCount {
+  date: string
+  count: number
+}
+
+/**
+ * One recent submission on the dashboard.
+ */
+export interface RecentSubmission {
+  id: string
+  spaceId: string
+  spaceTitle: string
+  name: string
+  content: string
+  rating: number | null
+  submittedAt: string
+}
+
+/**
+ * The account's dashboard.
+ *
+ * Mirrors `DashboardResponse` in the backend. Every number is scoped to the
+ * signed-in account's own Spaces.
+ */
+export interface DashboardAnalytics {
+  totalSpaces: number
+  totalTestimonials: number
+  uniqueSubmitters: number
+  daily: DailyCount[]
+  rangeDays: number
+  recent: RecentSubmission[]
+  plan: Plan
+  spacesLimit: number
+}
+
+/**
  * A Space as the public form sees it.
  *
  * Mirrors `PublicSpaceResponse` in the backend. It carries no owner identity

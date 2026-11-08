@@ -54,6 +54,24 @@ const SPACE = {
   updatedAt: '2026-01-01T00:00:00Z',
 }
 
+/**
+ * The dashboard's analytics.
+ *
+ * The dashboard page also loads the analytics panel, so the mock has to
+ * answer that endpoint too. The numbers here are not what these tests are
+ * about — the panel has its own test file.
+ */
+const DASHBOARD = {
+  totalSpaces: 1,
+  totalTestimonials: 0,
+  uniqueSubmitters: 0,
+  daily: [],
+  rangeDays: 30,
+  recent: [],
+  plan: 'FREE',
+  spacesLimit: 3,
+}
+
 describe('the dashboard', () => {
   let fetchMock: ReturnType<typeof vi.fn>
 
@@ -80,6 +98,9 @@ describe('the dashboard', () => {
       if (url.includes('/app/auth/me')) {
         return Promise.resolve(jsonResponse(CUSTOMER))
       }
+      if (url.includes('/app/dashboard')) {
+        return Promise.resolve(jsonResponse(DASHBOARD))
+      }
       return Promise.resolve(jsonResponse([]))
     })
 
@@ -95,6 +116,9 @@ describe('the dashboard', () => {
     fetchMock.mockImplementation((url: string) => {
       if (url.includes('/app/auth/me')) {
         return Promise.resolve(jsonResponse(CUSTOMER))
+      }
+      if (url.includes('/app/dashboard')) {
+        return Promise.resolve(jsonResponse(DASHBOARD))
       }
       return Promise.resolve(jsonResponse([SPACE]))
     })
@@ -112,6 +136,9 @@ describe('the dashboard', () => {
       if (url.includes('/app/auth/me')) {
         return Promise.resolve(jsonResponse(CUSTOMER))
       }
+      if (url.includes('/app/dashboard')) {
+        return Promise.resolve(jsonResponse(DASHBOARD))
+      }
       return Promise.resolve(jsonResponse([{ ...SPACE, editable: false }]))
     })
 
@@ -126,6 +153,9 @@ describe('the dashboard', () => {
     fetchMock.mockImplementation((url: string) => {
       if (url.includes('/app/auth/me')) {
         return Promise.resolve(jsonResponse(CUSTOMER))
+      }
+      if (url.includes('/app/dashboard')) {
+        return Promise.resolve(jsonResponse(DASHBOARD))
       }
       return Promise.resolve(
         jsonResponse(
@@ -146,6 +176,9 @@ describe('the dashboard', () => {
     fetchMock.mockImplementation((url: string, options?: RequestInit) => {
       if (url.includes('/app/auth/me')) {
         return Promise.resolve(jsonResponse(CUSTOMER))
+      }
+      if (url.includes('/app/dashboard')) {
+        return Promise.resolve(jsonResponse(DASHBOARD))
       }
       if (options?.method === 'DELETE') {
         return Promise.resolve(new Response(null, { status: 204 }))
@@ -172,6 +205,9 @@ describe('the dashboard', () => {
     fetchMock.mockImplementation((url: string, options?: RequestInit) => {
       if (url.includes('/app/auth/me')) {
         return Promise.resolve(jsonResponse(CUSTOMER))
+      }
+      if (url.includes('/app/dashboard')) {
+        return Promise.resolve(jsonResponse(DASHBOARD))
       }
       if (options?.method === 'DELETE') {
         return Promise.resolve(new Response(null, { status: 204 }))

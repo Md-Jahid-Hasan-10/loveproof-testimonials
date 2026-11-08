@@ -6,14 +6,19 @@ import { describeFailure } from '../api'
 import { Button } from '../components/Button'
 import { Card } from '../components/Card'
 import { ErrorBanner } from '../components/ErrorBanner'
+import { DashboardAnalyticsPanel } from './DashboardAnalyticsPanel'
 import { useCustomer } from './useCustomer'
 
 /**
- * The dashboard: the customer's Spaces.
+ * The dashboard: the customer's Spaces and their numbers.
  *
  * Each Space shows its public URL and a link to copy it. The copy button is
  * the one thing here that touches the clipboard, and it says so when the
  * clipboard is not available rather than failing silently.
+ *
+ * <p>The analytics sit above the Spaces. They answer the question a customer
+ * opens the dashboard to ask — how many testimonials have come in — before
+ * the list of the Spaces themselves.
  */
 export default function DashboardPage() {
   const { customer } = useCustomer()
@@ -100,6 +105,8 @@ export default function DashboardPage() {
       </div>
 
       {error && <ErrorBanner message={error} onRetry={() => void load()} />}
+
+      <DashboardAnalyticsPanel />
 
       {spaces.length === 0 ? (
         <Card className="p-8 text-center">

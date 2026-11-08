@@ -5,6 +5,7 @@ import type {
   CreateTestimonialPayload,
   CurationPayload,
   Customer,
+  DashboardAnalytics,
   DashboardStats,
   EmbedConfig,
   ErrorEnvelope,
@@ -399,6 +400,17 @@ export function updateProfile(displayName: string): Promise<Customer> {
  */
 export function listSpaces(): Promise<Space[]> {
   return request<Space[]>('GET', '/app/spaces')
+}
+
+/**
+ * Reads the account's dashboard: the totals, the daily series and the recent
+ * submissions.
+ *
+ * @param days how many days the chart covers; the server clamps it
+ */
+export function getDashboardAnalytics(days?: number): Promise<DashboardAnalytics> {
+  const query = days === undefined ? '' : `?days=${days}`
+  return request<DashboardAnalytics>('GET', `/app/dashboard${query}`)
 }
 
 /**

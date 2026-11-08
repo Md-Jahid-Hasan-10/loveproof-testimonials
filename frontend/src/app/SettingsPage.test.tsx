@@ -94,19 +94,27 @@ describe('the account settings page', () => {
     renderSettings()
 
     const field = await screen.findByLabelText(/display name/i)
-    expect(field).toHaveValue('Ada')
+    // The name is copied in once the account arrives, so the field is empty
+    // for a moment before it holds the customer's own name.
+    await waitFor(() => {
+      expect(field).toHaveValue('Ada')
+    })
   })
 
   it('saves a new display name', async () => {
     const profileCalls: Array<{ url: string; body: unknown }> = []
+    // The server is the authority on the name: once it has been changed,
+    // reading the account back returns the new one.
+    let savedName = CUSTOMER.displayName
 
     fetchMock.mockImplementation((url: string, options?: RequestInit) => {
       if (url.includes('/app/auth/me')) {
-        return Promise.resolve(jsonResponse(CUSTOMER))
+        return Promise.resolve(jsonResponse({ ...CUSTOMER, displayName: savedName }))
       }
       if (url.includes('/app/auth/profile')) {
         profileCalls.push({ url, body: JSON.parse(String(options?.body)) })
-        return Promise.resolve(jsonResponse({ ...CUSTOMER, displayName: 'Ada L.' }))
+        savedName = 'Ada L.'
+        return Promise.resolve(jsonResponse({ ...CUSTOMER, displayName: savedName }))
       }
       return Promise.resolve(jsonResponse([]))
     })
@@ -114,6 +122,11 @@ describe('the account settings page', () => {
     renderSettings()
 
     const field = await screen.findByLabelText(/display name/i)
+    // The account's own name is copied in first, so the test starts from the
+    // field the customer actually sees.
+    await waitFor(() => {
+      expect(field).toHaveValue('Ada')
+    })
     await userEvent.clear(field)
     await userEvent.type(field, 'Ada L.')
 
