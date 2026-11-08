@@ -17,8 +17,10 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
+import com.loveproof.testimonials.exception.BillingNotConfiguredException;
 import com.loveproof.testimonials.exception.ConflictException;
 import com.loveproof.testimonials.exception.DuplicateTestimonialException;
+import com.loveproof.testimonials.exception.InvalidWebhookSignatureException;
 import com.loveproof.testimonials.exception.NotFoundException;
 import com.loveproof.testimonials.exception.PlanLimitExceededException;
 import com.loveproof.testimonials.exception.SpaceNotAcceptingException;
@@ -204,6 +206,56 @@ public class GlobalExceptionHandler {
             HttpServletRequest request) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(
                 "PLAN_LIMIT_REACHED",
+                ex.getMessage(),
+                Map.of(),
+                clock.instant(),
+                path(request)));
+    }
+
+    /**
+     * Handles a webhook delivery whose signature did not verify.
+     *
+     * <p>The answer is a 400: the delivery was malformed or forged, and
+     * nothing about it was acted on. The message says only that the
+     * signature was not valid, so a caller learns nothing about the secret.
+     *
+     * @param ex      the exception
+     * @param request the servlet request
+     * @return a 400
+     */
+    @ExceptionHandler(InvalidWebhookSignatureException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidSignature(
+            InvalidWebhookSignatureException ex,
+            HttpServletRequest request) {
+
+        log.warn("Refused a webhook delivery on {}: the signature did not verify.",
+                path(request));
+        return ResponseEntity.badRequest().body(new ErrorResponse(
+                "INVALID_WEBHOOK_SIGNATURE",
+                ex.getMessage(),
+                Map.of(),
+                clock.instant(),
+                path(request)));
+    }
+
+    /**
+     * Handles a billing action on an installation without Stripe keys.
+     *
+     * <p>The answer is a 503: the request was fine and the service is
+     * temporarily unable to serve it. Nothing about the account is affected
+     * and no plan changes.
+     *
+     * @param ex      the exception
+     * @param request the servlet request
+     * @return a 503
+     */
+    @ExceptionHandler(BillingNotConfiguredException.class)
+    public ResponseEntity<ErrorResponse> handleBillingNotConfigured(
+            BillingNotConfiguredException ex,
+            HttpServletRequest request) {
+
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(new ErrorResponse(
+                "BILLING_NOT_CONFIGURED",
                 ex.getMessage(),
                 Map.of(),
                 clock.instant(),

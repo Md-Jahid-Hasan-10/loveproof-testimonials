@@ -56,6 +56,15 @@ loveproof:
     login:
       limit: 1000
       period-seconds: 300
+  stripe:
+    # The webhook secret is set so the signature check can be exercised. The
+    # secret key and the price id are deliberately left empty, so the
+    # "billing is not configured" path stays reachable.
+    secret-key: ''
+    webhook-secret: whsec_test_secret
+    premium-price-id: ''
+  billing:
+    reconcile-interval-ms: 3600000
 
 server:
   servlet:
