@@ -34,6 +34,8 @@ const AdminLoginPage = lazy(() => import('./admin/AdminLoginPage'))
 const CustomerSignInPage = lazy(() => import('./app/CustomerSignInPage'))
 const CustomerRegisterPage = lazy(() => import('./app/CustomerRegisterPage'))
 const DashboardPage = lazy(() => import('./app/DashboardPage'))
+const SpaceWizardPage = lazy(() => import('./app/SpaceWizardPage'))
+const SpaceDetailPage = lazy(() => import('./app/SpaceDetailPage'))
 
 export default function App() {
   return (
@@ -63,6 +65,11 @@ export default function App() {
               <Route element={<RequireCustomer />}>
                 <Route element={<AppLayout />}>
                   <Route path="/app" element={<DashboardPage />} />
+                  <Route path="/app/spaces/new" element={<SpaceWizardPage />} />
+                  <Route
+                    path="/app/spaces/:spaceId"
+                    element={<SpaceDetailPage />}
+                  />
                 </Route>
               </Route>
 
