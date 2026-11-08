@@ -380,4 +380,124 @@ describe('TestimonialWallPage', () => {
     expect(within(group).getAllByRole('button')).toHaveLength(6)
     await waitForBothRequests()
   })
+
+  it('offers a way to submit a testimonial from the empty state', async () => {
+    stubApi(() => jsonResponse(page([])))
+    renderPage()
+
+    await screen.findByRole('heading', { name: /no testimonials yet/i })
+    expect(
+      screen.getByRole('link', { name: /share your story/i }),
+    ).toHaveAttribute('href', '/submit')
+    await waitForBothRequests()
+  })
+
+  it('shows the loading state while the wall is being fetched', async () => {
+    // The page query is held open, so the loading state is observable.
+    let releaseList: (() => void) | undefined
+    const listHeld = new Promise<void>((resolve) => {
+      releaseList = resolve
+    })
+    fetchMock.mockImplementation((url: string) => {
+      if (url.includes('/testimonials/stats')) {
+        return settle(Promise.resolve(jsonResponse(STATS)))
+      }
+      return settle(
+        listHeld.then(() => jsonResponse(page([]))),
+      )
+    })
+    renderPage()
+
+    expect(await screen.findByText(/loading testimonials/i)).toBeInTheDocument()
+
+    releaseList?.()
+    await waitForBothRequests()
+    expect(
+      screen.queryByText(/loading testimonials/i),
+    ).not.toBeInTheDocument()
+  })
+
+  it('shows a loading marker while a refresh is in flight over existing rows', async () => {
+    const user = userEvent.setup()
+    let releaseList: (() => void) | undefined
+    const listHeld = new Promise<void>((resolve) => {
+      releaseList = resolve
+    })
+    let holdTheList = false
+
+    fetchMock.mockImplementation((url: string) => {
+      if (url.includes('/testimonials/stats')) {
+        return settle(Promise.resolve(jsonResponse(STATS)))
+      }
+      if (holdTheList) {
+        return settle(listHeld.then(() => jsonResponse(page([testimonial()]))))
+      }
+      return settle(Promise.resolve(jsonResponse(page([testimonial()]))))
+    })
+    renderPage()
+    await screen.findByText('Ada Lovelace')
+
+    holdTheList = true
+    await user.click(screen.getByRole('button', { name: '4 stars' }))
+
+    // The rows from the previous query are still on screen, so the visitor
+    // needs to be told that they are being replaced.
+    expect(await screen.findByText(/loading testimonials/i)).toBeInTheDocument()
+
+    releaseList?.()
+    await waitForBothRequests()
+  })
+
+  it('marks the list as busy while it is being fetched', async () => {
+    stubApi(() => jsonResponse(page([testimonial()])))
+    renderPage()
+
+    await screen.findByText('Ada Lovelace')
+    const list = screen.getByRole('list', { name: /published testimonials/i })
+    await waitFor(() => expect(list).not.toHaveAttribute('aria-busy'))
+    await waitForBothRequests()
+  })
+
+  it('does not show the empty state when the wall failed to load', async () => {
+    fetchMock.mockImplementation((url: string) => {
+      if (url.includes('/testimonials/stats')) {
+        return Promise.resolve(jsonResponse(STATS))
+      }
+      return Promise.reject(new TypeError('Failed to fetch'))
+    })
+    renderPage()
+
+    expect(await screen.findByRole('alert')).toBeInTheDocument()
+    expect(
+      screen.queryByRole('heading', { name: /no testimonials yet/i }),
+    ).not.toBeInTheDocument()
+    await waitForBothRequests()
+  })
+
+  it('shows the server wording when the rate limiter refuses a request', async () => {
+    fetchMock.mockImplementation((url: string) => {
+      if (url.includes('/testimonials/stats')) {
+        return Promise.resolve(jsonResponse(STATS))
+      }
+      return Promise.resolve(
+        jsonResponse(
+          {
+            code: 'RATE_LIMITED',
+            message:
+              'Too many testimonials were submitted from this location. Please try again later.',
+            fieldErrors: {},
+            timestamp: '2026-11-08T00:00:00Z',
+            path: '/api/testimonials',
+          },
+          429,
+        ),
+      )
+    })
+    renderPage()
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      /too many testimonials were submitted/i,
+    )
+    await waitForBothRequests()
+  })
 })

@@ -111,6 +111,8 @@ export default function SubmitTestimonialPage() {
             'Some details need fixing. The messages below are next to each field.',
           )
         } else {
+          // A rate-limit refusal carries the server's own wording, which
+          // already tells the visitor how long to wait.
           setSubmissionError(error.message)
         }
       } else {
@@ -272,6 +274,12 @@ export default function SubmitTestimonialPage() {
 
           <div className="flex flex-col gap-1.5">
             <label className="flex items-start gap-3 text-sm text-slate-700">
+              {/*
+                The checkbox is drawn small, but its hit area is padded out to
+                24 pixels — the WCAG 2.2 minimum for a pointer target. The
+                padding is on the input itself, so the box stays where it
+                looks while the area that responds to a tap grows.
+              */}
               <input
                 type="checkbox"
                 name="consent"
@@ -279,7 +287,7 @@ export default function SubmitTestimonialPage() {
                 onChange={(event) => update('consent', event.target.checked)}
                 aria-describedby={errors.consent ? 'consent-error' : undefined}
                 aria-invalid={errors.consent ? true : undefined}
-                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                className="mt-0.5 h-6 w-6 shrink-0 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
               />
               <span>
                 {CONSENT_STATEMENT}

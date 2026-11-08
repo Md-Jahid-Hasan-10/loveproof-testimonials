@@ -43,6 +43,19 @@ loveproof:
     text-version: v1-test
   security:
     ip-hash-salt: test-salt
+    # The tests need to simulate two different clients, so the forwarded
+    # header is trusted here. The default deployment does not trust it.
+    trust-forwarded-for: true
+  rate-limit:
+    # Generous, so the functional tests that submit many testimonials are not
+    # refused. The rate limit itself is exercised by RateLimitTest, which
+    # overrides these with a low allowance.
+    submit:
+      limit: 1000
+      period-seconds: 3600
+    login:
+      limit: 1000
+      period-seconds: 300
 
 server:
   servlet:

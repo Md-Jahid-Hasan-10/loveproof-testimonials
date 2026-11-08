@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ApiError, getDashboardStats } from '../api'
+import { describeFailure, getDashboardStats } from '../api'
 import type { DashboardStats } from '../api'
 import { Card } from '../components/Card'
 import { ErrorBanner } from '../components/ErrorBanner'
+import { LoadingIndicator } from '../components/LoadingIndicator'
 
 /**
  * The admin dashboard: the moderation counts at a glance.
@@ -22,15 +23,7 @@ export default function AdminDashboardPage() {
     try {
       setStats(await getDashboardStats())
     } catch (cause) {
-      if (cause instanceof ApiError && cause.status === 401) {
-        setError('Your session has expired. Sign in again to continue.')
-      } else {
-        setError(
-          cause instanceof Error
-            ? cause.message
-            : 'The dashboard could not be loaded.',
-        )
-      }
+      setError(describeFailure(cause, 'The dashboard could not be loaded.'))
     } finally {
       setLoading(false)
     }
@@ -54,20 +47,40 @@ export default function AdminDashboardPage() {
 
       {error && <ErrorBanner message={error} onRetry={() => void load()} />}
 
-      {loading && !stats && (
-        <p role="status" aria-live="polite" className="text-sm text-slate-600">
-          Loading the dashboard…
-        </p>
-      )}
+      <LoadingIndicator
+        label="Loading the dashboard…"
+        loading={loading}
+        hasContent={stats !== null}
+      />
 
       {stats && (
-        <>
+        <div aria-busy={loading || undefined} className="flex flex-col gap-6">
           <dl className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             <CountTile label="Pending" value={stats.pending} tone="amber" />
             <CountTile label="Approved" value={stats.approved} tone="emerald" />
             <CountTile label="Rejected" value={stats.rejected} tone="rose" />
             <CountTile label="Deleted" value={stats.deleted} tone="slate" />
           </dl>
+
+          {stats.total === 0 && (
+            <Card className="p-8 text-center">
+              <h2 className="text-lg font-semibold text-slate-900">
+                No testimonials yet
+              </h2>
+              <p className="mx-auto mt-2 max-w-md text-sm text-slate-600">
+                Nothing has been submitted through the public form. The counts
+                above fill in as submissions arrive.
+              </p>
+              <div className="mt-6">
+                <Link
+                  to="/submit"
+                  className="inline-flex items-center rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700"
+                >
+                  Open the public form
+                </Link>
+              </div>
+            </Card>
+          )}
 
           <div className="grid gap-4 lg:grid-cols-3">
             <Card className="p-5">
@@ -116,7 +129,7 @@ export default function AdminDashboardPage() {
               Open the moderation inbox
             </Link>
           </div>
-        </>
+        </div>
       )}
     </div>
   )

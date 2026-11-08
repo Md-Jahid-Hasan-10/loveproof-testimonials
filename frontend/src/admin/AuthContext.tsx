@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
-import { ApiError, getSession, signIn, signOut } from '../api'
+import { ApiError, describeFailure, getSession, signIn, signOut } from '../api'
 import { AdminSessionContext } from './adminSession'
 import type { AdminSessionLike, AdminSessionState } from './adminSession'
 
@@ -30,11 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setError(null)
       } else {
         setAdmin(null)
-        setError(
-          cause instanceof Error
-            ? cause.message
-            : 'The session could not be restored.',
-        )
+        setError(describeFailure(cause, 'The session could not be restored.'))
       }
     } finally {
       setLoading(false)
@@ -53,9 +49,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setAdmin(session)
         return true
       } catch (cause) {
-        setError(
-          cause instanceof Error ? cause.message : 'The sign-in failed.',
-        )
+        // The sign-in endpoint's 401 is the deliberate "invalid username or
+        // password", which must reach the visitor word for word: it is what
+        // keeps the page from revealing which half of the credentials was
+        // wrong. So a 401 is not reworded here.
+        setError(describeFailure(cause, 'The sign-in failed.', false))
         return false
       }
     },

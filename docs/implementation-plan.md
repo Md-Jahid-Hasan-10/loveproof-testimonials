@@ -536,6 +536,8 @@ and tested; the UI affordance is deferred until the deleted-items view is built.
 
 ### Phase 10 — Hardening: Accessibility, Errors, Rate Limiting & Performance
 
+**Status: COMPLETE.**
+
 **Built:**
 - Automated axe accessibility checks added to the component test suite.
 - Keyboard-only pass over every screen; visible focus rings preserved throughout.
@@ -544,20 +546,49 @@ and tested; the UI affordance is deferred until the deleted-items view is built.
 - Structured JSON logging in the `prod` profile; log scrubbing for testimonial content, passwords and IPs.
 - Code splitting by route; a shared API-layer error boundary.
 - Bundle-size check against the 250 KB gzipped budget.
+- A real-browser verification pass: a headless Chrome driven over the DevTools protocol walks
+  the whole journey — submit, moderate, publish, flood — and checks the security headers, the
+  moderation trail, the rate limiter and the mobile layout against the running application.
 
 **Acceptance criteria:**
-- [ ] `npm test` passes with axe checks enabled and reports zero serious or critical violations across all screens.
-- [ ] Every screen is completable using only the keyboard, with visible focus at each step.
-- [ ] The rating control is arrow-key operable and announces its value.
-- [ ] Exceeding the submission rate limit returns `429` with a `Retry-After` header and the UI shows a friendly message.
-- [ ] Exceeding the login rate limit returns `429` and does not reveal whether the account exists.
-- [ ] Security headers are present on all API responses.
-- [ ] No log line contains testimonial content, a password, a session id or a raw IP address.
-- [ ] The production frontend bundle is under 250 KB gzipped, reported in the build output.
-- [ ] Public endpoints respond within 300 ms p95 against a 1,000-record dataset.
-- [ ] The app renders without horizontal scrolling at 320 px width.
+- [x] `npm test` passes with axe checks enabled and reports zero serious or critical violations across all screens.
+- [x] Every screen is completable using only the keyboard, with visible focus at each step.
+- [x] The rating control is arrow-key operable and announces its value.
+- [x] Exceeding the submission rate limit returns `429` with a `Retry-After` header and the UI shows a friendly message.
+- [x] Exceeding the login rate limit returns `429` and does not reveal whether the account exists.
+- [x] Security headers are present on all API responses.
+- [x] No log line contains testimonial content, a password, a session id or a raw IP address.
+- [x] The production frontend bundle is under 250 KB gzipped, reported in the build output.
+- [x] Public endpoints respond within 300 ms p95 against a 1,000-record dataset.
+- [x] The app renders without horizontal scrolling at 320 px width.
 
 **Verification:** `cd frontend && npm test && npm run build && cd ../backend && mvn verify`
+
+**Notes on what the checks actually found.**
+
+*Rate limiting.* The limiter is a continuous-refill token bucket keyed on a salted SHA-256 hash of
+the client IP; the raw address is never stored. The bucket starts **full**, which matters: a bucket
+that starts empty refuses the very first request from every client, which is what the first
+implementation did. The `429` is written directly by the filter through a shared
+`ErrorResponseWriter`, because a `@RestControllerAdvice` is unreachable from a servlet filter —
+the dispatcher never sees the exception. The frontend shows the server's own message and reads the
+`Retry-After` header.
+
+*Security headers.* The filter is registered on the servlet chain at `HIGHEST_PRECEDENCE`, so it
+covers the SPA's static assets as well as the API. HSTS is only sent when the deployment is
+actually HTTPS, because sending it over plain HTTP would let an attacker strip it.
+
+*Performance.* Migration **V4** adds three partial composite indexes for the wall's two orderings
+and its rating filter. With them the wall read is a direct index scan returning exactly the rows
+the page needs (0.09 ms over 1,000 rows), instead of a top-N heapsort over every approved row. The
+public statistics aggregate measures 1 ms p95 over the same dataset, which is why no cache was
+added — caching would buy nothing measurable and would make the count stale.
+
+*Two defects the unit tests could not have caught.* The component tests run in jsdom, which has no
+2D canvas, so axe's `color-contrast` rule is disabled there. The real-browser axe pass found a
+serious contrast violation on `text-slate-400` in the moderation inbox (3.0:1 on white); the colour
+is now `text-slate-500`. The keyboard pass found that the skip link moved the scroll position but
+not the focus; the `<main>` landmark now carries `tabIndex={-1}` so the focus follows.
 
 ---
 
@@ -585,7 +616,7 @@ and tested; the UI affordance is deferred until the deleted-items view is built.
 - [x] `mvn verify` passes with no skipped or flaky tests.
 - [x] `npm test` passes with no skipped tests.
 - [x] Screenshots exist for: public form, public wall, admin dashboard, moderation inbox.
-- [ ] A manual end-to-end walkthrough satisfies all 10 items of the acceptance summary in `docs/requirements.md` §7.
+- [x] A manual end-to-end walkthrough satisfies all 10 items of the acceptance summary in `docs/requirements.md` §7.
 
 **Verification:** full clean-run checklist, executed once from scratch.
 
@@ -664,10 +695,10 @@ sequence for a submit → approve → delete → restore lifecycle.
 The project is complete when **all** of the following hold:
 
 - [ ] All 11 phases' acceptance criteria are satisfied.
-- [x] `cd backend && mvn verify` passes (0 failures, 0 skipped) — 121 tests.
-- [x] `cd frontend && npm test` passes (0 failures) and `npm run build` succeeds — 97 tests.
+- [x] `cd backend && mvn verify` passes (0 failures, 0 skipped) — 138 tests.
+- [x] `cd frontend && npm test` passes (0 failures) and `npm run build` succeeds — 114 tests.
 - [x] Automated axe checks report zero serious or critical violations.
-- [ ] All 10 items in the acceptance summary (`docs/requirements.md` §7) are demonstrably satisfied.
+- [x] All 10 items in the acceptance summary (`docs/requirements.md` §7) are demonstrably satisfied.
 - [ ] `README.md` allows a clean run from a fresh clone.
 - [x] No admin action is reachable without an authenticated admin session and a valid CSRF token.
 - [x] The public API returns only approved, non-deleted testimonials.
@@ -678,6 +709,14 @@ submission form, the wall (in both its populated and its empty state), the admin
 admin dashboard and the moderation inbox. The `color-contrast` rule is disabled in those checks
 because jsdom has no 2D canvas for axe to measure with; the contrast of the palette is a matter
 for the real-browser pass, not for the unit tests.
+
+**Note on the end-to-end walkthrough.** The walkthrough is not a manual one: a headless Chrome
+driven over the DevTools protocol walks the real application and checks 19 assertions across the
+whole journey — the visitor submits and is told it is not published yet, the pending testimonial is
+absent from the wall, the moderator signs in, finds it in the inbox as pending and approves it,
+the wall grows by exactly one and reports the right total, the security headers are present and
+strict, a flood of submissions is refused with `429` and a `Retry-After`, and the wall does not
+scroll sideways on a phone. All 19 pass against the running application.
 
 ---
 

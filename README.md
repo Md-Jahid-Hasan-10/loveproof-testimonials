@@ -10,11 +10,14 @@ wall.
 | Backend | Java 21 · Spring Boot 3.5 · Spring Data JPA · Flyway · Actuator |
 | Database | PostgreSQL 16 |
 
-> **Status: Phases 0–9 complete and verified.** The database schema, the domain model, the public
+> **Status: Phases 0–10 complete and verified.** The database schema, the domain model, the public
 > REST API, the public submission form, the public testimonial wall and the complete admin
 > moderation surface — protected access, dashboard counts, approval, rejection, deletion and the
-> audit trail — are in place and tested (121 backend tests, 97 frontend tests, 0 failures). The
-> remaining hardening phase lands as defined in
+> audit trail — are in place and tested. The hardening phase has also landed: accessibility, the
+> error and empty states, server-side rate limiting, security response headers, code splitting and
+> the bundle budget. **138 backend tests, 114 frontend tests, 0 failures**, and a headless-browser
+> pass that walks the whole journey end to end. The remaining work is the seed script and the
+> clean-run checklist, as defined in
 > [`docs/implementation-plan.md`](docs/implementation-plan.md).
 
 ---
@@ -171,6 +174,11 @@ All configuration is externalised through environment variables with local defau
 | `LOVEPROOF_ADMIN_PASSWORD_HASH` | dev-only BCrypt hash | BCrypt hash (cost 10) of the seeded admin's password. Never a plaintext secret. |
 | `LOVEPROOF_CONSENT_TEXT_VERSION` | `v1` | Identifier of the consent wording shown at submission time. |
 | `LOVEPROOF_IP_HASH_SALT` | `loveproof-local-salt` | Salt for hashing client IPs. Change it per environment. |
+| `LOVEPROOF_TRUST_FORWARDED_FOR` | `false` | Whether `X-Forwarded-For` may be trusted. Leave `false` unless the deployment really sits behind a proxy that sets it: a client that can set it can otherwise choose its own rate-limit bucket. |
+| `LOVEPROOF_RATE_LIMIT_SUBMIT_LIMIT` | `5` | Submissions allowed per client per submission window. |
+| `LOVEPROOF_RATE_LIMIT_SUBMIT_PERIOD_SECONDS` | `3600` | The submission window, in seconds. |
+| `LOVEPROOF_RATE_LIMIT_LOGIN_LIMIT` | `10` | Sign-in attempts allowed per client per login window. |
+| `LOVEPROOF_RATE_LIMIT_LOGIN_PERIOD_SECONDS` | `300` | The login window, in seconds. |
 | `LOVEPROOF_SECURE_COOKIES` | `false` | Marks the session and CSRF cookies `Secure`. Leave `false` for local HTTP; the `prod` profile sets it to `true` regardless. |
 
 > The seeded administrator's default password is `loveproof`. It exists for local development only
@@ -222,12 +230,25 @@ Errors use one envelope for every failure: `{ code, message, fieldErrors, timest
 cd backend && mvn verify      # backend: unit, slice and integration tests
 cd frontend && npm test       # frontend: component and unit tests
 cd frontend && npm run lint   # frontend: ESLint
-cd frontend && npm run build  # frontend: type-check + production bundle
+cd frontend && npm run build  # frontend: type-check + production bundle + budget check
 ```
 
 The backend suite runs against a **real PostgreSQL 16 instance via Testcontainers**, so Flyway
 migrations, CHECK constraints and partial indexes are exercised for real rather than against an
 emulated database. **Docker must be running** for `mvn test`.
+
+`npm run build` also enforces the **bundle budget**: 100 kB gzipped for the entry chunk, 100 kB for
+any single chunk and 250 kB for the whole download. The build fails if the budget is exceeded, and
+prints the per-file breakdown either way.
+
+The frontend suite includes **axe accessibility checks** over every screen. The `color-contrast`
+rule is disabled there because jsdom has no 2D canvas for axe to measure with; contrast is checked
+in the real-browser pass instead.
+
+`WallPerformanceTest` fills the table with 1,000 rows — the size a busy self-hosted installation
+reaches within a year — and measures the public read. It asserts the *shape* of the answer and the
+plan the database chose (an index scan, never a sequential scan), and prints the timings so a
+regression shows up in the build log.
 
 ---
 
@@ -266,6 +287,22 @@ seeded development password is documented above and must be overridden in any sh
 
 **Same origin.** The frontend and backend are same-origin in development via the Vite proxy, so no
 CORS configuration is required.
+
+**Rate limiting.** The public submission endpoint and the admin sign-in endpoint are limited
+server-side by a continuous-refill token bucket. The bucket is keyed on a salted SHA-256 hash of
+the client IP, so the raw address is never stored, and it starts *full* — a bucket that started
+empty would refuse the first request from every client. Exceeding a limit answers `429` with a
+`Retry-After` header in seconds, and the frontend shows the server's own message rather than a
+generic failure. The defaults are 5 submissions per hour and 10 sign-in attempts per five minutes;
+both are configurable (see [Configuration](#configuration)). The login limiter returns the same
+`429` whether or not the account exists, so it cannot be used to enumerate administrators.
+
+**Response headers.** Every response carries `Content-Security-Policy`, `X-Content-Type-Options:
+nosniff`, `X-Frame-Options: DENY` and `Referrer-Policy: same-origin`. The CSP is strict —
+`default-src 'self'`, `script-src 'self'`, `object-src 'none'`, `frame-ancestors 'none'` — with
+`style-src 'self' 'unsafe-inline'` as the one concession, because React sets a handful of element
+styles inline. `Strict-Transport-Security` is only sent when the deployment is actually HTTPS:
+sending it over plain HTTP would let an attacker strip it.
 
 Public data hygiene:
 

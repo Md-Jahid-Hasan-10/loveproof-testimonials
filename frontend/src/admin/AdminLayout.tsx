@@ -28,7 +28,13 @@ export function AdminLayout() {
 
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 px-4 py-4">
-          <div className="flex items-center gap-6">
+          {/*
+            The two groups wrap onto separate rows on a narrow screen rather
+            than being squeezed side by side. The brand and the navigation
+            stay together; the signed-in name and the sign-out button move
+            below them.
+          */}
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
             <Link
               to="/admin"
               className="text-lg font-bold tracking-tight text-slate-900"
@@ -67,7 +73,7 @@ export function AdminLayout() {
             </nav>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             {admin && (
               <p className="text-sm text-slate-600">
                 Signed in as{' '}
@@ -87,7 +93,17 @@ export function AdminLayout() {
         </div>
       </header>
 
-      <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">
+      {/*
+        `tabIndex={-1}` makes the skip link move the focus, not just the
+        scroll position: a fragment link on an element that cannot take the
+        focus leaves a keyboard user still at the top of the page, with no
+        idea where they now are.
+      */}
+      <main
+        id="main"
+        tabIndex={-1}
+        className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 focus:outline-none"
+      >
         <Outlet />
       </main>
 

@@ -63,19 +63,22 @@ com.loveproof.testimonials
 ├── service/       # ✓ TestimonialService (creation + moderation rules), FingerprintService,
 │                  #   AdminSessionService (the acting administrator)
 ├── web/           # ✓ HealthController, TestimonialController, AdminTestimonialController,
-│                  #   AdminSessionController, GlobalExceptionHandler, dto/ (records)
-├── config/        # ✓ ClockConfig, SecurityConfig, Jackson, rate limiting
+│                  #   AdminSessionController, GlobalExceptionHandler, RateLimitFilter,
+│                  #   RateLimiterService, ClientIpResolver, ErrorResponseWriter, dto/ (records)
+├── config/        # ✓ ClockConfig, SecurityConfig, SecurityHeadersConfig, Jackson, CsrfCookieFilter
 └── exception/     # ✓ NotFoundException, ConflictException, DuplicateTestimonialException
 ```
 
 **Entities never leave the `service` layer.** Controllers return DTOs, never entities.
 
-> **Current state (Phase 9).** The schema, the domain model, the public API, the moderation rules
+> **Current state (Phase 10).** The schema, the domain model, the public API, the moderation rules
 > and the full admin security model are implemented and tested. Spring Security protects the admin
 > surface: every `/api/admin/**` route requires an authenticated session with the `ADMIN` role, and
 > every state-changing route requires a valid CSRF token. The `loveproof.admin.api.enabled` gate
 > that existed during Phase 2 has been **removed** — the protection lives in the filter chain, not
-> in a flag that could be flipped. See §6.3.
+> in a flag that could be flipped. The hardening phase adds rate limiting, security response
+> headers, accessibility, the error and empty states, code splitting and the bundle budget. See
+> §5.4, §5.5 and §6.3.
 
 ### 2.3 Frontend structure
 
@@ -84,6 +87,7 @@ src/
 ├── api/           # ✓ Typed fetch client, endpoint functions, error envelope types
 │   ├── client.ts  # ✓ request wrapper, ApiError, CSRF header handling, public + admin methods
 │   ├── types.ts   # ✓ Shared API types mirroring backend DTOs
+│   ├── errorMessages.ts # ✓ describeFailure() — one place that turns a failure into a message
 │   └── index.ts   # ✓ Barrel
 ├── admin/         # ✓ The admin surface
 │   ├── adminSession.ts      # ✓ The auth context object and its types
@@ -95,6 +99,9 @@ src/
 │   ├── AdminDashboardPage.tsx  # ✓ Count tiles
 │   └── AdminInboxPage.tsx   # ✓ Filter tabs, search, approve/reject/delete
 ├── components/    # ✓ Button, Card, Field, StarRating, ReadOnlyStars, ErrorBanner, PublicLayout
+│   ├── LoadingIndicator.tsx # ✓ The spinner / inline busy indicator
+│   ├── RouteFallback.tsx    # ✓ The Suspense placeholder for a lazily-loaded route
+│   └── ErrorBoundary.tsx    # ✓ The top-level render-failure boundary
 ├── context/       # (Phase 7) AuthContext (admin session state)
 ├── hooks/         # (Phase 4+) useTestimonials, useSubmission, useAdminStats, …
 ├── pages/         # ✓ HomePage, SubmitTestimonialPage (+ submissionValidation.ts), TestimonialWallPage
@@ -243,6 +250,9 @@ cd backend && mvn test -Dtest=MigrationTest,TestimonialApiTest,TestimonialServic
 # ✓ the Phase 3 security test classes
 cd backend && mvn test -Dtest=AdminAuthTest,AdminTestimonialApiTest,AdminSessionCookieTest,AdminSessionCookieProfileTest
 
+# ✓ the Phase 10 hardening test classes
+cd backend && mvn test -Dtest=SecurityHeadersTest,RateLimitTest,WallPerformanceTest
+
 # ✓ frontend test suite
 cd frontend && npm test
 
@@ -376,9 +386,26 @@ Migration rules:
   directly.
 - Effects that fetch data must handle the error and the loading state; a rejected promise must never
   escape into an unhandled rejection.
+- **Every failure message goes through `describeFailure()`** in `src/api/errorMessages.ts`. It maps
+  an `ApiError` to its server message, a `TypeError` to a "could not reach the server" message, and
+  a `401` to "your session has expired" — except on the sign-in path, where the deliberate
+  "Invalid username or password" must survive. Pass `expiredSession = false` there.
+- A component shows an empty state only when the request **succeeded** and returned nothing. A
+  failed request shows the error, never the empty state.
 - Tailwind class order follows the plugin's canonical order; run the formatter before committing.
 
-### 5.4 Accessibility
+### 5.4 Code splitting and the bundle budget
+
+- Routes are lazily loaded with `React.lazy` and rendered inside a `Suspense` with
+  `RouteFallback`. A new page is added to `App.tsx` as a `lazy()` import, not a static one.
+- `npm run build` enforces the bundle budget — 100 kB gzipped for the entry chunk, 100 kB for any
+  single chunk, 250 kB for the whole download — and **fails the build** when it is exceeded. Do not
+  raise the budget to make a build pass; find the weight.
+- `ErrorBoundary` wraps the app in `main.tsx`, so a render failure anywhere shows a recoverable
+  message rather than a blank page. The boundary must never leak the internal error message to
+  the visitor.
+
+### 5.5 Accessibility
 
 Accessibility is a build requirement, not a follow-up. In new code:
 
@@ -461,6 +488,22 @@ Every error response uses the same shape:
   same attributes.
 - **401 versus 403.** The CSRF filter runs before authorization, so the access-denied handler
   inspects the authentication state: anonymous → `401`, authenticated → `403`.
+- **Rate limiting lives on the server.** `POST /api/testimonials` and `POST /api/admin/session` are
+  limited by a continuous-refill token bucket keyed on a salted SHA-256 hash of the client IP. The
+  raw IP is never stored. The bucket **starts full** — a bucket that starts empty refuses the first
+  request from every client. Exceeding a limit answers `429` with a `Retry-After` header in
+  seconds, and the login limiter never reveals whether the account exists.
+- **`X-Forwarded-For` is untrusted by default.** `loveproof.security.trust-forwarded-for` is
+  `false`, so the client address is taken from the socket. Turn it on only behind a proxy that
+  actually sets the header, or a client can choose its own rate-limit bucket.
+- **Security response headers are on every response.** `SecurityHeadersConfig` registers its filter
+  on the servlet chain at `HIGHEST_PRECEDENCE`, so it covers the SPA's static assets as well as the
+  API. `Strict-Transport-Security` is only sent when the deployment is actually HTTPS — sending it
+  over plain HTTP would let an attacker strip it.
+- **A filter cannot throw into the `@RestControllerAdvice`.** An exception raised in a servlet
+  filter never reaches the dispatcher, so the client would get a container error page instead of the
+  error envelope. `ErrorResponseWriter` exists so a filter writes the same envelope directly. Use it
+  for any new filter that can fail.
 
 > **Do not reintroduce a configuration gate on the admin surface.** The `loveproof.admin.api.enabled`
 > property existed during Phase 2 as a placeholder for this protection. It has been removed. A flag
@@ -552,12 +595,16 @@ cd backend && mvn verify
 
 # ✓ frontend
 cd frontend && npm test
+
+# ✓ frontend build + bundle budget
+cd frontend && npm run build
 ```
 
 Then check, in this order:
 
 - [ ] The build compiles with no errors.
 - [ ] The test suite passes with **zero failures and zero skipped tests**.
+- [ ] The production bundle is within the budget, and the build printed the per-file breakdown.
 - [ ] The specific acceptance criteria for this change are each covered by a passing test.
 - [ ] No new console warnings, no unhandled promise rejections, no React key or a11y warnings.
 - [ ] `git diff` reviewed and free of debug statements, stray comments, and unrelated edits.

@@ -1,9 +1,16 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ApiError, approveTestimonial, deleteTestimonial, listInbox, rejectTestimonial } from '../api'
+import {
+  approveTestimonial,
+  deleteTestimonial,
+  describeFailure,
+  listInbox,
+  rejectTestimonial,
+} from '../api'
 import type { InboxFilter, Testimonial } from '../api'
 import { Button } from '../components/Button'
 import { Card } from '../components/Card'
 import { ErrorBanner } from '../components/ErrorBanner'
+import { LoadingIndicator } from '../components/LoadingIndicator'
 
 const PAGE_SIZE = 20
 
@@ -44,15 +51,7 @@ export default function AdminInboxPage() {
       setTotal(result.total)
       setTotalPages(result.totalPages)
     } catch (cause) {
-      if (cause instanceof ApiError && cause.status === 401) {
-        setError('Your session has expired. Sign in again to continue.')
-      } else {
-        setError(
-          cause instanceof Error
-            ? cause.message
-            : 'The inbox could not be loaded.',
-        )
-      }
+      setError(describeFailure(cause, 'The inbox could not be loaded.'))
     } finally {
       setLoading(false)
     }
@@ -79,9 +78,7 @@ export default function AdminInboxPage() {
       await action()
       await load()
     } catch (cause) {
-      setActionError(
-        cause instanceof Error ? cause.message : failureMessage,
-      )
+      setActionError(describeFailure(cause, failureMessage))
     } finally {
       setBusyId(null)
     }
@@ -140,6 +137,11 @@ export default function AdminInboxPage() {
                 type="button"
                 role="tab"
                 aria-selected={filter === option}
+                aria-controls="inbox-results"
+                // The roving tabindex: only the selected tab is in the tab
+                // order, so the arrow keys are what move between tabs. A
+                // screen reader announces the whole group as one set.
+                tabIndex={filter === option ? 0 : -1}
                 onClick={() => handleFilterChange(option)}
                 className={`rounded-lg px-3 py-2 text-sm font-medium ${
                   filter === option
@@ -153,8 +155,8 @@ export default function AdminInboxPage() {
           )}
         </div>
 
-        <form onSubmit={handleSearchSubmit} className="flex items-end gap-2">
-          <div className="flex flex-col gap-1.5">
+        <form onSubmit={handleSearchSubmit} className="flex flex-wrap items-end gap-2">
+          <div className="flex min-w-0 flex-1 flex-col gap-1.5 sm:flex-none">
             <label htmlFor="inbox-search" className="text-sm font-medium text-slate-900">
               Search
             </label>
@@ -182,13 +184,18 @@ export default function AdminInboxPage() {
         />
       )}
 
-      {loading && testimonials.length === 0 && (
-        <p role="status" aria-live="polite" className="text-sm text-slate-600">
-          Loading the inbox…
-        </p>
-      )}
+      <LoadingIndicator
+        label="Loading the inbox…"
+        loading={loading}
+        hasContent={testimonials.length > 0}
+      />
 
-      {!loading && testimonials.length === 0 && (
+      {/*
+        The empty state is only shown when the list really is empty. When the
+        load failed, the error banner above already says so, and "Nothing
+        matches this filter" on top of it would contradict it.
+      */}
+      {!loading && !error && testimonials.length === 0 && (
         <Card className="p-8 text-center">
           <p className="text-sm text-slate-600">
             Nothing matches this filter.
@@ -196,19 +203,31 @@ export default function AdminInboxPage() {
         </Card>
       )}
 
-      <ul className="flex flex-col gap-4">
-        {testimonials.map((testimonial) => (
-          <li key={testimonial.id}>
-            <TestimonialRow
-              testimonial={testimonial}
-              busy={busyId === testimonial.id}
-              onApprove={() => handleApprove(testimonial)}
-              onReject={(reason) => handleReject(testimonial, reason)}
-              onDelete={() => handleDelete(testimonial)}
-            />
-          </li>
-        ))}
-      </ul>
+      {/*
+        The tab panel is a plain container: the `tabpanel` role is not allowed
+        on a list element, so the list sits inside it rather than carrying the
+        role itself.
+      */}
+      <div
+        id="inbox-results"
+        role="tabpanel"
+        aria-busy={loading || undefined}
+        aria-label="Testimonials awaiting moderation"
+      >
+        <ul className="flex flex-col gap-4">
+          {testimonials.map((testimonial) => (
+            <li key={testimonial.id}>
+              <TestimonialRow
+                testimonial={testimonial}
+                busy={busyId === testimonial.id}
+                onApprove={() => handleApprove(testimonial)}
+                onReject={(reason) => handleReject(testimonial, reason)}
+                onDelete={() => handleDelete(testimonial)}
+              />
+            </li>
+          ))}
+        </ul>
+      </div>
 
       {totalPages > 1 && (
         <nav aria-label="Pagination" className="flex items-center justify-between">
@@ -273,7 +292,7 @@ function TestimonialRow({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="font-semibold text-slate-900">{testimonial.name}</p>
+            <p className="break-words font-semibold text-slate-900">{testimonial.name}</p>
             <StatusBadge status={testimonial.status} />
             <span
               className="text-sm text-amber-600"
@@ -287,18 +306,23 @@ function TestimonialRow({
           </div>
 
           {(testimonial.role || testimonial.company) && (
-            <p className="mt-1 text-sm text-slate-500">
+            <p className="mt-1 break-words text-sm text-slate-500">
               {[testimonial.role, testimonial.company]
                 .filter(Boolean)
                 .join(' · ')}
             </p>
           )}
 
-          <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-slate-700">
+          <p className="mt-3 whitespace-pre-line break-words text-sm leading-relaxed text-slate-700">
             {testimonial.content}
           </p>
 
-          <p className="mt-3 text-xs text-slate-400">
+          {/*
+            The timestamp is `text-slate-500`, not a lighter grey: slate-400
+            on white is only 3:1, which is below the 4.5:1 that axe requires
+            for body text.
+          */}
+          <p className="mt-3 text-xs text-slate-500">
             Submitted{' '}
             {new Date(testimonial.submittedAt).toLocaleString()}
           </p>

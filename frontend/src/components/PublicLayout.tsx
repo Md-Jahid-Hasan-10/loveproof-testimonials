@@ -18,7 +18,7 @@ export function PublicLayout() {
       </a>
 
       <header className="border-b border-slate-200 bg-white">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-4 py-4">
+        <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-x-4 gap-y-2 px-4 py-4">
           <Link to="/" className="text-lg font-bold tracking-tight text-slate-900">
             LoveProof
           </Link>
@@ -51,7 +51,17 @@ export function PublicLayout() {
         </div>
       </header>
 
-      <main id="main" className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 sm:py-12">
+      {/*
+        `tabIndex={-1}` makes the skip link move the focus, not just the
+        scroll position: a fragment link on an element that cannot take the
+        focus leaves a keyboard user still at the top of the page, with no
+        idea where they now are.
+      */}
+      <main
+        id="main"
+        tabIndex={-1}
+        className="mx-auto w-full max-w-3xl flex-1 px-4 py-8 focus:outline-none sm:py-12"
+      >
         <Outlet />
       </main>
 

@@ -9,6 +9,29 @@
 
   body {
     @apply bg-white text-slate-900 antialiased;
+    /*
+      A long word — a URL, a company name with no spaces — can otherwise push
+      the page wider than the screen, which leaves the visitor scrolling
+      sideways on a phone. Clipping it here keeps every page inside the
+      viewport.
+    */
+    overflow-x: hidden;
+  }
+
+  /*
+    Long unbroken text wraps rather than overflowing its container. The
+    individual components also break their own words where it matters; this is
+    the safety net for anything added later.
+  */
+  p,
+  h1,
+  h2,
+  h3,
+  li,
+  cite,
+  dd,
+  dt {
+    overflow-wrap: break-word;
   }
 
   /* Visible focus is never removed — see CLAUDE.md §5.4. */

@@ -35,14 +35,18 @@ public class TestimonialController {
     private static final int MAX_PAGE_SIZE = 100;
 
     private final TestimonialService testimonialService;
+    private final ClientIpResolver clientIpResolver;
 
     /**
      * Creates the controller.
      *
      * @param testimonialService the service holding the business rules
+     * @param clientIpResolver   the reader for the client address
      */
-    public TestimonialController(TestimonialService testimonialService) {
+    public TestimonialController(
+            TestimonialService testimonialService, ClientIpResolver clientIpResolver) {
         this.testimonialService = testimonialService;
+        this.clientIpResolver = clientIpResolver;
     }
 
     /**
@@ -66,7 +70,7 @@ public class TestimonialController {
                 request.company(),
                 request.rating(),
                 request.content(),
-                clientIp(httpRequest));
+                clientIpResolver.resolve(httpRequest));
 
         return ResponseEntity
                 .status(HttpStatus.CREATED)
@@ -123,23 +127,6 @@ public class TestimonialController {
             case "submittedat", "submitted_at", "newest" -> Sort.by(Sort.Direction.DESC, "submittedAt");
             default -> Sort.by(Sort.Direction.DESC, "submittedAt");
         };
-    }
-
-    /**
-     * Reads the client address for rate-limit bookkeeping.
-     *
-     * <p>The address is only ever passed to the service, which hashes it. The raw value is never
-     * stored or logged (NFR-SEC-6).
-     *
-     * @param httpRequest the servlet request
-     * @return the client address, or {@code null} when it is unavailable
-     */
-    private String clientIp(HttpServletRequest httpRequest) {
-        String forwarded = httpRequest.getHeader("X-Forwarded-For");
-        if (forwarded != null && !forwarded.isBlank()) {
-            return forwarded.split(",")[0].strip();
-        }
-        return httpRequest.getRemoteAddr();
     }
 
     /**

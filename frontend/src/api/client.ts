@@ -21,11 +21,14 @@ export class ApiError extends Error {
   readonly status: number
   readonly fieldErrors: Record<string, string>
   readonly path: string | undefined
+  /** How long to wait before retrying, when the server said so. */
+  readonly retryAfterSeconds: number | undefined
 
   constructor(
     status: number,
     envelope: Partial<ErrorEnvelope> | undefined,
     fallbackMessage: string,
+    retryAfterSeconds?: number,
   ) {
     super(envelope?.message ?? fallbackMessage)
     this.name = 'ApiError'
@@ -33,11 +36,17 @@ export class ApiError extends Error {
     this.code = envelope?.code ?? 'UNKNOWN_ERROR'
     this.fieldErrors = envelope?.fieldErrors ?? {}
     this.path = envelope?.path
+    this.retryAfterSeconds = retryAfterSeconds
   }
 
   /** Whether the failure is a field-level validation failure. */
   get isValidationFailure(): boolean {
     return this.status === 400
+  }
+
+  /** Whether the failure is a refusal by the rate limiter. */
+  get isRateLimited(): boolean {
+    return this.status === 429
   }
 }
 
@@ -95,6 +104,21 @@ async function readErrorEnvelope(
 }
 
 /**
+ * Reads the `Retry-After` header, when the server sent one.
+ *
+ * The header is in whole seconds. A value that is not a number is ignored: a
+ * malformed header must not turn into a malformed failure.
+ */
+function readRetryAfter(response: Response): number | undefined {
+  const header = response.headers?.get('Retry-After')
+  if (header === null || header === undefined) {
+    return undefined
+  }
+  const seconds = Number.parseInt(header, 10)
+  return Number.isFinite(seconds) && seconds >= 0 ? seconds : undefined
+}
+
+/**
  * Performs a JSON request against the API.
  *
  * @param method the HTTP method
@@ -121,6 +145,7 @@ async function request<T>(
       response.status,
       envelope,
       `The request failed with status ${response.status}.`,
+      readRetryAfter(response),
     )
   }
 
@@ -217,25 +242,6 @@ export function listInbox(params: {
   return request<Page<Testimonial>>(
     'GET',
     `/admin/testimonials${suffix ? `?${suffix}` : ''}`,
-  )
-}
-
-/**
- * Lists the soft-deleted testimonials.
- *
- * @param params the page and the page size
- */
-export function listDeleted(params: {
-  page?: number
-  size?: number
-} = {}): Promise<Page<Testimonial>> {
-  const query = new URLSearchParams()
-  if (params.page !== undefined) query.set('page', String(params.page))
-  if (params.size !== undefined) query.set('size', String(params.size))
-  const suffix = query.toString()
-  return request<Page<Testimonial>>(
-    'GET',
-    `/admin/testimonials/deleted${suffix ? `?${suffix}` : ''}`,
   )
 }
 

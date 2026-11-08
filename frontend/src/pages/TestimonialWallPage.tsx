@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
-import { getPublicStats, listTestimonials } from '../api'
+import { Link } from 'react-router-dom'
+import { describeFailure, getPublicStats, listTestimonials } from '../api'
 import type { PublicStats, Testimonial } from '../api'
 import { Button } from '../components/Button'
 import { Card } from '../components/Card'
 import { ErrorBanner } from '../components/ErrorBanner'
+import { LoadingIndicator } from '../components/LoadingIndicator'
 import { ReadOnlyStars } from '../components/ReadOnlyStars'
 
 const PAGE_SIZE = 12
@@ -55,16 +57,7 @@ export default function TestimonialWallPage() {
       setTotal(result.total)
       setTotalPages(result.totalPages)
     } catch (cause) {
-      // A network failure carries a technical message ("Failed to fetch") that
-      // means nothing to a visitor, so it is replaced with plain wording. A
-      // failure that reached the server carries the server's own message.
-      setError(
-        cause instanceof TypeError
-          ? 'We could not reach the server. Please check your connection and try again.'
-          : cause instanceof Error
-            ? cause.message
-            : 'The testimonials could not be loaded.',
-      )
+      setError(describeFailure(cause, 'The testimonials could not be loaded.'))
     } finally {
       setLoading(false)
     }
@@ -168,13 +161,13 @@ export default function TestimonialWallPage() {
 
       {error && <ErrorBanner message={error} onRetry={() => void load()} />}
 
-      {loading && testimonials.length === 0 && (
-        <p role="status" aria-live="polite" className="text-sm text-slate-600">
-          Loading testimonials…
-        </p>
-      )}
+      <LoadingIndicator
+        label="Loading testimonials…"
+        loading={loading}
+        hasContent={testimonials.length > 0}
+      />
 
-      {!loading && testimonials.length === 0 && (
+      {!loading && !error && testimonials.length === 0 && (
         <Card className="p-10 text-center">
           <h2 className="text-lg font-semibold text-slate-900">
             {filtered ? 'No testimonials with that rating' : 'No testimonials yet'}
@@ -184,6 +177,14 @@ export default function TestimonialWallPage() {
               ? 'Try a different rating, or clear the filter to see every published testimonial.'
               : 'Once a testimonial is approved by a moderator it appears here. Be the first to share yours.'}
           </p>
+          <div className="mt-6">
+            <Link
+              to="/submit"
+              className="inline-flex items-center rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700"
+            >
+              Share your story
+            </Link>
+          </div>
         </Card>
       )}
 
@@ -195,7 +196,11 @@ export default function TestimonialWallPage() {
         </p>
       )}
 
-      <ul className="flex flex-col gap-4">
+      <ul
+        className="flex flex-col gap-4"
+        aria-busy={loading || undefined}
+        aria-label="Published testimonials"
+      >
         {testimonials.map((testimonial) => (
           <li key={testimonial.id}>
             <TestimonialCard testimonial={testimonial} />
@@ -235,7 +240,7 @@ function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
   return (
     <Card className="p-5">
       <blockquote className="flex flex-col gap-3">
-        <p className="whitespace-pre-line text-sm leading-relaxed text-slate-700">
+        <p className="whitespace-pre-line break-words text-sm leading-relaxed text-slate-700">
           {testimonial.content}
         </p>
       </blockquote>
@@ -246,12 +251,12 @@ function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
         one per card would give the page several indistinguishable landmarks.
       */}
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
-        <div className="flex flex-col gap-1">
-          <cite className="not-italic font-semibold text-slate-900">
+        <div className="flex min-w-0 flex-col gap-1">
+          <cite className="not-italic font-semibold break-words text-slate-900">
             {testimonial.name}
           </cite>
           {(testimonial.role || testimonial.company) && (
-            <p className="text-sm text-slate-500">
+            <p className="break-words text-sm text-slate-500">
               {[testimonial.role, testimonial.company]
                 .filter(Boolean)
                 .join(' · ')}

@@ -13,6 +13,8 @@ Vite proxy, so the browser sees `/api/...` on port 5173.
 
 - [Conventions](#conventions)
 - [Errors](#errors)
+- [Rate limiting](#rate-limiting)
+- [Response headers](#response-headers)
 - [Authentication and CSRF](#authentication-and-csrf)
 - [Public endpoints](#public-endpoints)
 - [Admin endpoints](#admin-endpoints)
@@ -62,6 +64,71 @@ envelope:
 | `409` | `CONFLICT` | Acting on an already-deleted testimonial, or restoring a live one |
 | `429` | `RATE_LIMITED` | Rate limit exceeded — always with a `Retry-After` header |
 | `500` | `INTERNAL_ERROR` | Unexpected — logged in full server-side, generic message to the client |
+
+---
+
+## Rate limiting
+
+Two endpoints are limited server-side: the public submission endpoint and the admin sign-in
+endpoint. Both use a continuous-refill token bucket keyed on a salted SHA-256 hash of the client
+IP address — the raw address is never stored, and the hash is salted per environment so the
+bucket keys cannot be correlated across deployments.
+
+When a limit is exceeded the response is `429` with the `RATE_LIMITED` code and a `Retry-After`
+header giving the number of seconds until the next request would be accepted:
+
+```http
+HTTP/1.1 429 Too Many Requests
+Content-Type: application/json
+Retry-After: 3195
+```
+
+```json
+{
+  "code": "RATE_LIMITED",
+  "message": "Too many testimonials were submitted from this location. Please try again later.",
+  "fieldErrors": {},
+  "timestamp": "2026-11-08T13:34:07Z",
+  "path": "/api/testimonials"
+}
+```
+
+The sign-in limit carries its own message, `"Too many sign-in attempts. Please try again later."`,
+which says nothing about whether the account exists.
+
+The bucket refills continuously rather than resetting on a fixed boundary, so `Retry-After` is the
+time until the next single request would be allowed.
+
+The defaults are 5 submissions per hour and 10 sign-in attempts per five minutes. Both are
+configurable through `LOVEPROOF_RATE_LIMIT_SUBMIT_LIMIT`,
+`LOVEPROOF_RATE_LIMIT_SUBMIT_PERIOD_SECONDS`, `LOVEPROOF_RATE_LIMIT_LOGIN_LIMIT` and
+`LOVEPROOF_RATE_LIMIT_LOGIN_PERIOD_SECONDS`.
+
+The sign-in limiter answers with the same `429` whether or not the account exists, so the limiter
+cannot be used to enumerate administrators.
+
+> **Trusting `X-Forwarded-For`.** The client address is taken from `X-Forwarded-For` only when
+> `LOVEPROOF_TRUST_FORWARDED_FOR` is `true`, which is off by default. A client that can set the
+> header can otherwise choose its own rate-limit bucket and defeat the limit entirely. Turn it on
+> only when the deployment really does sit behind a proxy that sets the header.
+
+---
+
+## Response headers
+
+Every response carries the same security headers:
+
+| Header | Value |
+|---|---|
+| `Content-Security-Policy` | `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'` |
+| `X-Content-Type-Options` | `nosniff` |
+| `X-Frame-Options` | `DENY` |
+| `Referrer-Policy` | `same-origin` |
+| `Strict-Transport-Security` | `max-age=63072000; includeSubDomains` — **only** when the deployment is HTTPS |
+
+The `style-src` concession is there because React sets a handful of element styles inline; a strict
+style policy would break them. `Strict-Transport-Security` is only sent over HTTPS, because sending
+it over plain HTTP would let an attacker strip it.
 
 ---
 

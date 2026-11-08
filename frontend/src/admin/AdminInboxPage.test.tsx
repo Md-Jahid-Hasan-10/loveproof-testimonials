@@ -264,4 +264,64 @@ describe('the moderation inbox', () => {
     expect(row).not.toBeNull()
     expect(within(row as HTMLElement).getByText('Pending')).toBeInTheDocument()
   })
+
+  it('does not claim the filter matched nothing when the inbox failed to load', async () => {
+    fetchMock.mockRejectedValue(new Error('The inbox is unavailable.'))
+
+    renderInbox()
+
+    expect(
+      await screen.findByText(/the inbox is unavailable/i),
+    ).toBeInTheDocument()
+    // The empty state would contradict the error banner above it.
+    expect(
+      screen.queryByText(/nothing matches this filter/i),
+    ).not.toBeInTheDocument()
+  })
+
+  it('shows the loading state while the inbox is being fetched', async () => {
+    let releaseList: (() => void) | undefined
+    const listHeld = new Promise<void>((resolve) => {
+      releaseList = resolve
+    })
+    fetchMock.mockImplementation((url: string) => {
+      if (String(url).includes('/api/admin/testimonials?')) {
+        return listHeld.then(() => page([PENDING]))
+      }
+      return Promise.resolve(jsonResponse({}))
+    })
+
+    renderInbox()
+
+    expect(await screen.findByText(/loading the inbox/i)).toBeInTheDocument()
+
+    releaseList?.()
+    await screen.findByText('Jane Doe')
+  })
+
+  it('keeps only the selected tab in the tab order', async () => {
+    renderInbox()
+
+    await screen.findByText('Jane Doe')
+
+    const pending = screen.getByRole('tab', { name: /pending/i })
+    const approved = screen.getByRole('tab', { name: /approved/i })
+
+    expect(pending).toHaveAttribute('tabindex', '0')
+    expect(approved).toHaveAttribute('tabindex', '-1')
+  })
+
+  it('points the tabs at the panel they control', async () => {
+    renderInbox()
+
+    await screen.findByText('Jane Doe')
+
+    const tab = screen.getByRole('tab', { name: /pending/i })
+    const controls = tab.getAttribute('aria-controls')
+    expect(controls).toBeTruthy()
+    expect(document.getElementById(controls as string)).toHaveAttribute(
+      'role',
+      'tabpanel',
+    )
+  })
 })

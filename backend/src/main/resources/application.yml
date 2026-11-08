@@ -92,6 +92,21 @@ loveproof:
     # Salt used when hashing client IP addresses for rate-limit bookkeeping.
     # The raw address is never stored or logged.
     ip-hash-salt: ${LOVEPROOF_IP_HASH_SALT:loveproof-local-salt}
+    # Whether the X-Forwarded-For header may be trusted. Leave this false
+    # unless the deployment really does sit behind a reverse proxy that sets
+    # the header: a client that can set it can otherwise choose its own rate
+    # limit bucket.
+    trust-forwarded-for: ${LOVEPROOF_TRUST_FORWARDED_FOR:false}
+  rate-limit:
+    # The public submission endpoint. Five per hour is generous for a real
+    # visitor and stops one client from flooding the moderation inbox.
+    submit:
+      limit: ${LOVEPROOF_RATE_LIMIT_SUBMIT_LIMIT:5}
+      period-seconds: ${LOVEPROOF_RATE_LIMIT_SUBMIT_PERIOD_SECONDS:3600}
+    # The admin sign-in endpoint. Ten attempts per five minutes.
+    login:
+      limit: ${LOVEPROOF_RATE_LIMIT_LOGIN_LIMIT:10}
+      period-seconds: ${LOVEPROOF_RATE_LIMIT_LOGIN_PERIOD_SECONDS:300}
 
 logging:
   level:

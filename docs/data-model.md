@@ -1,6 +1,6 @@
 # LoveProof — Data Model
 
-**Version:** 1.1 (implemented — V1–V3 applied and validated)
+**Version:** 1.2 (implemented — V1–V4 applied and validated)
 **Database:** PostgreSQL 16
 **Schema owner:** `loveproof` (application user, least privilege)
 **Migration tooling:** Flyway (`backend/src/main/resources/db/migration`)
@@ -87,6 +87,24 @@ The core entity. One row per public submission.
 | `idx_testimonial_fingerprint` | `(content_fingerprint)` | B-tree | Duplicate detection. |
 | `idx_testimonial_submitter` | `(submitter_ip_hash, submitted_at DESC)` | B-tree | Per-IP rate-limit bookkeeping and abuse review. |
 | `idx_testimonial_deleted_at` | `(deleted_at)` | B-tree | Fast exclusion of soft-deleted rows. |
+
+**Composite indexes for the wall (migration `V4`).** The wall is the busiest read in the
+application, and its two orderings each need the sort column together with the filter columns in
+a single index. Without them the planner reads every approved row and sorts them to return the
+first page.
+
+| Index | Columns | Type | Serves |
+|---|---|---|---|
+| `idx_testimonial_live_approved_recent` | `(submitted_at DESC, rating DESC)` | **Partial**: `WHERE status = 'APPROVED' AND deleted_at IS NULL` | The wall's "newest first" ordering. |
+| `idx_testimonial_live_approved_rating` | `(rating DESC, submitted_at DESC)` | **Partial**: `WHERE status = 'APPROVED' AND deleted_at IS NULL` | The wall's "highest rated" ordering. The submission time is the tie-breaker, so the ordering is total and two rows with the same rating always come back in the same order. |
+| `idx_testimonial_live_approved_rating_filter` | `(rating, submitted_at DESC)` | **Partial**: `WHERE status = 'APPROVED' AND deleted_at IS NULL AND consent_given = TRUE` | The wall filtered by rating. |
+
+All three share the baseline partial predicate, so they stay small however large the moderation
+queue grows: a pending or deleted row is in none of them.
+
+With these in place the wall read is a direct index scan returning exactly the rows the page
+needs — 0.09 ms over 1,000 rows, against a top-N heapsort over every approved row before.
+`WallPerformanceTest` asserts the plan uses an index scan and never a sequential scan.
 
 #### Relationships
 
@@ -242,7 +260,11 @@ ORDER BY submitted_at DESC          -- or: rating DESC, submitted_at DESC
 LIMIT :size OFFSET :offset;
 ```
 
-Served by the partial index `idx_testimonial_live_approved`.
+Served by the partial index `idx_testimonial_live_approved` for the newest-first ordering and by
+the `V4` composite indexes for the ordering as it is actually run — `idx_testimonial_live_approved_recent`
+for `submitted_at DESC` and `idx_testimonial_live_approved_rating` for `rating DESC, submitted_at DESC`.
+With the rating filter applied, `idx_testimonial_live_approved_rating_filter` narrows the scan to a
+fifth of the wall at most.
 
 ### 6.2 Dashboard counts (FR-3)
 
@@ -291,6 +313,7 @@ LIMIT 1;
 | `V1__baseline.sql` | `V1__baseline.sql` | Extensions (`pgcrypto` for `gen_random_uuid`), `testimonial`, `admin_user`, `moderation_action` tables, all CHECK constraints, all FKs, all indexes. |
 | `V2__seed_admin_user.sql` | `V2__seed_admin_user.sql` | Seed the local admin account (idempotent `INSERT ... ON CONFLICT (lower(username)) DO NOTHING`). Password hash injected from a configurable property placeholder so no secret lives in the repository. |
 | `V3__resync_admin_user.sql` | `V3__resync_admin_user.sql` | Resynchronise the seeded admin row when the configured hash differs from the stored one. |
+| `V4__wall_composite_indexes.sql` | `V4__wall_composite_indexes.sql` | Three partial composite indexes for the public wall: the newest-first ordering, the highest-rated ordering, and the rating filter. |
 
 `ddl-auto` is set to `validate` in every profile: Flyway owns the schema and Hibernate may only verify it.
 

@@ -142,4 +142,71 @@ describe('the admin dashboard', () => {
       await screen.findByRole('link', { name: /open the moderation inbox/i }),
     ).toHaveAttribute('href', '/admin/inbox')
   })
+
+  it('shows an empty state when nothing has been submitted yet', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({
+        ...STATS,
+        total: 0,
+        pending: 0,
+        approved: 0,
+        rejected: 0,
+        deleted: 0,
+        last7Days: 0,
+        averageRating: null,
+      }),
+    )
+
+    renderDashboard()
+
+    expect(
+      await screen.findByRole('heading', { name: /no testimonials yet/i }),
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole('link', { name: /open the public form/i }),
+    ).toHaveAttribute('href', '/submit')
+  })
+
+  it('shows the loading state while the counts are being fetched', async () => {
+    let releaseStats: (() => void) | undefined
+    const statsHeld = new Promise<void>((resolve) => {
+      releaseStats = resolve
+    })
+    fetchMock.mockImplementation((url: string) => {
+      if (String(url) === '/api/admin/testimonials/stats') {
+        return statsHeld.then(() => jsonResponse(STATS))
+      }
+      return Promise.resolve(jsonResponse({}))
+    })
+
+    renderDashboard()
+
+    expect(
+      await screen.findByText(/loading the dashboard/i),
+    ).toBeInTheDocument()
+
+    releaseStats?.()
+    await waitFor(() => expect(screen.getByText('Pending')).toBeInTheDocument())
+  })
+
+  it('says the session has expired when the server refuses the request', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse(
+        {
+          code: 'UNAUTHORIZED',
+          message: 'Authentication is required.',
+          fieldErrors: {},
+          timestamp: '2026-11-08T00:00:00Z',
+          path: '/api/admin/testimonials/stats',
+        },
+        401,
+      ),
+    )
+
+    renderDashboard()
+
+    expect(
+      await screen.findByText(/your session has expired/i),
+    ).toBeInTheDocument()
+  })
 })

@@ -31,9 +31,9 @@ class MigrationTest extends PostgresIntegrationTest {
     @Test
     void allMigrationsAppliedSuccessfully() {
         Integer applied = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM flyway_schema_history WHERE version IN ('1', '2', '3') AND success = TRUE",
+                "SELECT COUNT(*) FROM flyway_schema_history WHERE version IN ('1', '2', '3', '4') AND success = TRUE",
                 Integer.class);
-        assertThat(applied).isEqualTo(3);
+        assertThat(applied).isEqualTo(4);
 
         String description = jdbcTemplate.queryForObject(
                 "SELECT description FROM flyway_schema_history WHERE version = '1'", String.class);
@@ -48,7 +48,7 @@ class MigrationTest extends PostgresIntegrationTest {
 
         Integer versions = jdbcTemplate.queryForObject(
                 "SELECT COUNT(DISTINCT version) FROM flyway_schema_history", Integer.class);
-        assertThat(versions).isEqualTo(3);
+        assertThat(versions).isEqualTo(4);
     }
 
     /**

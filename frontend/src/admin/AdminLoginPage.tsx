@@ -42,7 +42,18 @@ export default function AdminLoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-      <main id="main" className="w-full max-w-md">
+      {/*
+        The skip link is the first focusable element, so a keyboard user can
+        jump straight to the form without reading the page heading first.
+      */}
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-brand-600 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white"
+      >
+        Skip to the sign-in form
+      </a>
+
+      <main id="main" tabIndex={-1} className="w-full max-w-md focus:outline-none">
         <Card className="p-6 sm:p-8">
           <div className="mb-6">
             <p className="text-sm font-semibold uppercase tracking-wide text-brand-700">
