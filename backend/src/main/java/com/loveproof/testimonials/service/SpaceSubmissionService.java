@@ -51,6 +51,7 @@ public class SpaceSubmissionService {
     private final SpaceRepository spaceRepository;
     private final SpaceTestimonialRepository testimonialRepository;
     private final AppUserRepository userRepository;
+    private final SpaceService spaceService;
     private final Clock clock;
 
     /**
@@ -59,16 +60,19 @@ public class SpaceSubmissionService {
      * @param spaceRepository       the Space store
      * @param testimonialRepository the testimonial store
      * @param userRepository        the account store
+     * @param spaceService          the Space rules
      * @param clock                 the clock, for the submission timestamp
      */
     public SpaceSubmissionService(
             SpaceRepository spaceRepository,
             SpaceTestimonialRepository testimonialRepository,
             AppUserRepository userRepository,
+            SpaceService spaceService,
             Clock clock) {
         this.spaceRepository = spaceRepository;
         this.testimonialRepository = testimonialRepository;
         this.userRepository = userRepository;
+        this.spaceService = spaceService;
         this.clock = clock;
     }
 
@@ -92,6 +96,12 @@ public class SpaceSubmissionService {
      * plan allows: the oldest few stay editable and the rest are kept but
      * read-only, which includes not collecting (OPEN-B, PRD §4.9).
      *
+     * <p>It also stops collecting once the Space holds as many testimonials
+     * as the owner's plan allows. The limit is applied here, in the one place
+     * that decides whether a Space accepts, so that the public page's
+     * {@code accepting} flag and the refusal of a submission can never
+     * disagree.
+     *
      * @param space the Space
      * @return whether submissions are accepted
      */
@@ -102,21 +112,11 @@ public class SpaceSubmissionService {
             // An account that no longer exists cannot have an editable Space.
             return false;
         }
-        return spaceServiceIsEditable(owner, space);
-    }
-
-    /**
-     * Whether the Space is one of the owner's editable ones.
-     *
-     * @param owner the owning account
-     * @param space the Space
-     * @return whether the Space may be changed
-     */
-    private boolean spaceServiceIsEditable(AppUser owner, Space space) {
-        int limit = PlanLimits.spacesFor(owner.getPlan());
-        return spaceRepository.findByOwnerIdOrderByCreatedAtAsc(owner.getId()).stream()
-                .limit(limit)
-                .anyMatch(candidate -> candidate.getId().equals(space.getId()));
+        if (!spaceService.isEditable(owner.getId(), space.getId())) {
+            return false;
+        }
+        int limit = PlanLimits.testimonialsPerSpaceFor(owner.getPlan());
+        return testimonialRepository.countBySpaceId(space.getId()) < limit;
     }
 
     /**

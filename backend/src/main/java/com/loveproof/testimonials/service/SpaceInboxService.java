@@ -15,6 +15,7 @@ import com.loveproof.testimonials.domain.Space;
 import com.loveproof.testimonials.domain.SpaceTestimonial;
 import com.loveproof.testimonials.exception.ConflictException;
 import com.loveproof.testimonials.exception.NotFoundException;
+import com.loveproof.testimonials.exception.PlanLimitExceededException;
 import com.loveproof.testimonials.repository.SpaceRepository;
 import com.loveproof.testimonials.repository.SpaceTestimonialRepository;
 
@@ -185,13 +186,13 @@ public class SpaceInboxService {
      * @return the testimonial
      * @throws NotFoundException when the Space or the testimonial does not
      *         belong to the account
-     * @throws ConflictException when the Space is read-only
+     * @throws PlanLimitExceededException when the Space is read-only
      */
     private SpaceTestimonial requireEditable(UUID ownerId, UUID spaceId, UUID id) {
         Space space = spaceService.get(ownerId, spaceId);
 
         if (!spaceService.isEditable(ownerId, spaceId)) {
-            throw new ConflictException(
+            throw new PlanLimitExceededException(
                     "This Space is read-only, so its testimonials cannot be changed.");
         }
 

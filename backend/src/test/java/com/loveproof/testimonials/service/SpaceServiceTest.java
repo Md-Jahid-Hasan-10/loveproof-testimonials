@@ -3,6 +3,7 @@ package com.loveproof.testimonials.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -288,6 +289,51 @@ class SpaceServiceTest extends PostgresIntegrationTest {
 
         assertThat(spaceService.isEditable(ownerId, first.getId())).isTrue();
         assertThat(spaceService.isEditable(ownerId, second.getId())).isTrue();
+    }
+
+    @Test
+    @DisplayName("Spaces created in the same millisecond are ordered deterministically")
+    void spacesCreatedInTheSameMillisecondAreOrderedDeterministically() {
+        // Five Spaces, all with the same creation timestamp. Without a second
+        // sort key the order would depend on the database's execution plan,
+        // and the three that stay editable would differ between calls.
+        UUID premium = createUser("same-instant@example.com", Plan.PREMIUM).getId();
+        Instant instant = Instant.parse("2026-01-01T00:00:00Z");
+
+        List<Space> spaces = new java.util.ArrayList<>();
+        for (int index = 0; index < 5; index++) {
+            Space space = new Space(premium, "Space " + index, "same-instant-" + index);
+            space.setCreatedAt(instant);
+            space.setUpdatedAt(instant);
+            spaces.add(spaceRepository.save(space));
+        }
+
+        AppUser account = userRepository.findById(premium).orElseThrow();
+        account.setPlan(Plan.FREE);
+        userRepository.save(account);
+
+        // The same three are editable on every call. Which three they are
+        // depends on the identifiers, which are not ordered by creation --
+        // what matters is that the answer never changes.
+        List<UUID> first = editableIds(premium, spaces);
+        for (int attempt = 0; attempt < 5; attempt++) {
+            assertThat(editableIds(premium, spaces)).containsExactlyInAnyOrderElementsOf(first);
+        }
+        assertThat(first).hasSize(3);
+    }
+
+    /**
+     * The identifiers of the Spaces an account may still edit.
+     *
+     * @param ownerId the owning account
+     * @param spaces  the account's Spaces
+     * @return the editable identifiers
+     */
+    private List<UUID> editableIds(UUID ownerId, List<Space> spaces) {
+        return spaces.stream()
+                .filter(space -> spaceService.isEditable(ownerId, space.getId()))
+                .map(Space::getId)
+                .toList();
     }
 
     @Test

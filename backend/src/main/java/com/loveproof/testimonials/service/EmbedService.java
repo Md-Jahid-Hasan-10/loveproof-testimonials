@@ -126,6 +126,8 @@ public class EmbedService {
             String backgroundColor,
             Boolean animation) {
 
+        spaceService.requireEditable(ownerId, spaceId);
+
         SpaceEmbedConfig config = getOrCreate(ownerId, spaceId);
         AppUser owner = userRepository.findById(ownerId)
                 .orElseThrow(() -> new NotFoundException("That account does not exist."));
@@ -184,6 +186,8 @@ public class EmbedService {
      */
     @Transactional
     public SpaceEmbedConfig rotateToken(UUID ownerId, UUID spaceId) {
+        spaceService.requireEditable(ownerId, spaceId);
+
         SpaceEmbedConfig config = getOrCreate(ownerId, spaceId);
         config.setEmbedToken(newToken());
         config.setUpdatedAt(clock.instant());

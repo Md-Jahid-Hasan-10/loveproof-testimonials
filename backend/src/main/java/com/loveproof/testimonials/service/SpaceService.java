@@ -59,7 +59,7 @@ public class SpaceService {
      */
     @Transactional(readOnly = true)
     public List<Space> list(UUID ownerId) {
-        return spaceRepository.findByOwnerIdOrderByCreatedAtDesc(ownerId).stream().toList();
+        return spaceRepository.findByOwnerIdOrderByCreatedAtDescIdDesc(ownerId).stream().toList();
     }
 
     /**
@@ -149,10 +149,12 @@ public class SpaceService {
      * @param changes what to change
      * @return the updated Space
      * @throws NotFoundException when the account does not own that Space
+     * @throws PlanLimitExceededException when the Space is read-only
      * @throws ConflictException when the slug is taken, or is already locked
      */
     @Transactional
     public Space update(UUID ownerId, UUID spaceId, SpaceChanges changes) {
+        requireEditable(ownerId, spaceId);
         Space space = get(ownerId, spaceId);
         AppUser owner = userRepository.findById(ownerId)
                 .orElseThrow(() -> new NotFoundException("That account does not exist."));
@@ -234,9 +236,11 @@ public class SpaceService {
      * @param ownerId the owning account
      * @param spaceId the Space
      * @throws NotFoundException when the account does not own that Space
+     * @throws PlanLimitExceededException when the Space is read-only
      */
     @Transactional
     public void delete(UUID ownerId, UUID spaceId) {
+        requireEditable(ownerId, spaceId);
         Space space = get(ownerId, spaceId);
         spaceRepository.delete(space);
     }
@@ -265,10 +269,32 @@ public class SpaceService {
 
         // Over the limit: the oldest Spaces stay editable and the newer ones
         // are read-only.
-        List<Space> oldestFirst = spaceRepository.findByOwnerIdOrderByCreatedAtAsc(ownerId);
+        List<Space> oldestFirst = spaceRepository.findByOwnerIdOrderByCreatedAtAscIdAsc(ownerId);
         return oldestFirst.stream()
                 .limit(limit)
                 .anyMatch(candidate -> candidate.getId().equals(spaceId));
+    }
+
+    /**
+     * Refuses the call when the Space is read-only.
+     *
+     * <p>Read-only is a consequence of the plan, not of ownership: a
+     * downgraded account keeps all of its Spaces but may only change the
+     * ones its plan still covers (OPEN-B, PRD §4.9). Every write path goes
+     * through here, because a rule that only some paths honour is a rule
+     * that the API will eventually leak around.
+     *
+     * @param ownerId the owning account
+     * @param spaceId the Space
+     * @throws PlanLimitExceededException when the Space is read-only
+     */
+    @Transactional(readOnly = true)
+    public void requireEditable(UUID ownerId, UUID spaceId) {
+        if (!isEditable(ownerId, spaceId)) {
+            throw new PlanLimitExceededException(
+                    "This Space is read-only, because your plan does not include this many "
+                            + "Spaces. Your three oldest Spaces stay editable.");
+        }
     }
 
     /**
