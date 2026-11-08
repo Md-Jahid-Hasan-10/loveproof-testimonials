@@ -661,6 +661,43 @@ The insert of the ledger row is the guard, not this select. The row is written i
 transaction as the effect, so a replayed event violates the primary key, the transaction rolls
 back, and no effect is applied twice.
 
+### 6.8 The dashboard analytics
+
+```sql
+-- The totals. The Space list is the ownership check: there is no parameter
+-- that names another account.
+SELECT count(*) FROM space_testimonial WHERE space_id IN (:space_ids);
+
+-- The distinct submitters. The email is compared case-insensitively, so
+-- "Ada@example.com" and "ada@example.com" are one person.
+SELECT count(DISTINCT lower(email))
+  FROM space_testimonial WHERE space_id IN (:space_ids);
+
+-- The daily series. The range is bounded by the chart, not by the table.
+SELECT * FROM space_testimonial
+ WHERE space_id IN (:space_ids)
+   AND submitted_at >= :range_start
+   AND submitted_at < :now
+ ORDER BY submitted_at DESC;
+
+-- The recent submissions.
+SELECT * FROM space_testimonial
+ WHERE space_id IN (:space_ids)
+ ORDER BY submitted_at DESC
+ LIMIT 10;
+```
+
+Two rules shape these queries:
+
+- **The buckets are UTC days.** The grouping uses the UTC day the submission arrived on, so the
+  same data produces the same chart for two people looking at it at the same moment.
+- **A day with no submissions shows zero.** The zero is not in the table — it is emitted by the
+  service, which walks the range and fills the gaps. A query alone cannot produce a row for a
+  day nothing happened on.
+
+> **An account with no Spaces is answered from the service, not the database.** The queries above
+> would be `IN ()`, which is not valid SQL. The service returns an all-zero dashboard instead.
+
 ---
 
 ## 7. Migration Plan (Flyway)

@@ -58,27 +58,47 @@ Layered, strict dependency direction: `web` → `service` → `repository` → `
 
 ```
 com.loveproof.testimonials
-├── domain/        # ✓ Testimonial, AdminUser, ModerationAction + status/role/action enums
-├── repository/    # ✓ TestimonialRepository, AdminUserRepository, ModerationActionRepository
+├── domain/        # ✓ Testimonial, AdminUser, ModerationAction + status/role/action enums;
+│                  #   AppUser, AuthToken, Space, SpaceTestimonial, SpaceEmbedConfig,
+│                  #   StripeEvent + Plan, AuthProvider, SubscriptionStatus, StripeEventOutcome
+├── repository/    # ✓ TestimonialRepository, AdminUserRepository, ModerationActionRepository,
+│                  #   AppUserRepository, AuthTokenRepository, SpaceRepository,
+│                  #   SpaceTestimonialRepository, SpaceEmbedConfigRepository, StripeEventRepository
 ├── service/       # ✓ TestimonialService (creation + moderation rules), FingerprintService,
-│                  #   AdminSessionService (the acting administrator)
+│                  #   AdminSessionService (the acting administrator),
+│                  #   AuthService, AuthTokenService, SpaceService, SpaceSubmissionService,
+│                  #   SpaceInboxService, EmbedService, ThemeCatalog, EmbedCatalog,
+│                  #   PlanLimits, PlanCatalog, BillingService, CheckoutService,
+│                  #   DashboardAnalyticsService, StripeGateway (+HttpStripeGateway),
+│                  #   StripeSignatureVerifier, WebhookService, SubscriptionReconciler,
+│                  #   SubscriptionReconciliationJob, mail/ (the email sender)
 ├── web/           # ✓ HealthController, TestimonialController, AdminTestimonialController,
 │                  #   AdminSessionController, GlobalExceptionHandler, RateLimitFilter,
-│                  #   RateLimiterService, ClientIpResolver, ErrorResponseWriter, dto/ (records)
-├── config/        # ✓ ClockConfig, SecurityConfig, SecurityHeadersConfig, Jackson, CsrfCookieFilter
-└── exception/     # ✓ NotFoundException, ConflictException, DuplicateTestimonialException
+│                  #   RateLimiterService, ClientIpResolver, ErrorResponseWriter, dto/ (records),
+│                  #   AppAuthController, AppSpaceController, AppSpaceInboxController,
+│                  #   AppSpaceEmbedController, AppDashboardController, AppBillingController,
+│                  #   PublicSpaceController, PublicEmbedController, EmbedScriptController,
+│                  #   StripeWebhookController
+├── config/        # ✓ ClockConfig, SecurityConfig, SecurityHeadersConfig, Jackson, CsrfCookieFilter,
+│                  #   AppSecurityConfig, BillingSecurityConfig, StripeProperties, CurrentUser
+└── exception/     # ✓ NotFoundException, ConflictException, DuplicateTestimonialException,
+                     PlanLimitExceededException, BillingNotConfiguredException,
+                     InvalidWebhookSignatureException, SpaceNotAcceptingException
 ```
 
 **Entities never leave the `service` layer.** Controllers return DTOs, never entities.
 
-> **Current state (Phase 10).** The schema, the domain model, the public API, the moderation rules
-> and the full admin security model are implemented and tested. Spring Security protects the admin
-> surface: every `/api/admin/**` route requires an authenticated session with the `ADMIN` role, and
-> every state-changing route requires a valid CSRF token. The `loveproof.admin.api.enabled` gate
-> that existed during Phase 2 has been **removed** — the protection lives in the filter chain, not
-> in a flag that could be flipped. The hardening phase adds rate limiting, security response
-> headers, accessibility, the error and empty states, code splitting and the bundle budget. See
-> §5.4, §5.5 and §6.3.
+> **The application has two surfaces.** The single-tenant half — the public wall and the
+> moderation inbox — and the SaaS half — accounts, Spaces, billing — coexist. They share the
+> database and the deployment but not the sessions: the admin chain and the customer chain are
+> separate filter chains, and neither can open the other's routes.
+>
+> **The schema, the domain model, the public API, the moderation rules and the full admin
+> security model are implemented and tested.** Spring Security protects the admin surface: every
+> `/api/admin/**` route requires an authenticated session with the `ADMIN` role, and every
+> state-changing route requires a valid CSRF token. The `loveproof.admin.api.enabled` gate that
+> existed during Phase 2 has been **removed** — the protection lives in the filter chain, not in
+> a flag that could be flipped. See §5.4, §5.5 and §6.3.
 
 ### 2.3 Frontend structure
 
@@ -98,6 +118,22 @@ src/
 │   ├── AdminLoginPage.tsx   # ✓ Sign-in form
 │   ├── AdminDashboardPage.tsx  # ✓ Count tiles
 │   └── AdminInboxPage.tsx   # ✓ Filter tabs, search, approve/reject/delete
+├── app/           # ✓ The customer surface
+│   ├── customerSession.ts   # ✓ The session context object and its types
+│   ├── CustomerAuthContext.tsx # ✓ CustomerAuthProvider — restores the session on mount
+│   ├── useCustomer.ts       # ✓ The useCustomer() hook
+│   ├── RequireCustomer.tsx  # ✓ The route guard
+│   ├── AppLayout.tsx        # ✓ Header, nav, Space list, past-due banner
+│   ├── CustomerSignInPage.tsx / CustomerRegisterPage.tsx  # ✓ Sign-in and registration
+│   ├── DashboardPage.tsx    # ✓ The Spaces, and the analytics panel
+│   ├── DashboardAnalyticsPanel.tsx # ✓ The totals, the range picker, the recent list
+│   ├── DashboardChart.tsx   # ✓ The daily chart, drawn by hand — no charting library
+│   ├── SpaceWizardPage.tsx  # ✓ The Space creation wizard
+│   ├── SpaceDetailPage.tsx  # ✓ The Space editor
+│   ├── SpaceInboxPage.tsx   # ✓ The curation inbox
+│   ├── SpaceEmbedPage.tsx   # ✓ The embed configuration
+│   ├── BillingPage.tsx      # ✓ The plan, the subscription and the upgrade
+│   └── SettingsPage.tsx     # ✓ The name, the password and the verification status
 ├── components/    # ✓ Button, Card, Field, StarRating, ReadOnlyStars, ErrorBanner, PublicLayout
 │   ├── LoadingIndicator.tsx # ✓ The spinner / inline busy indicator
 │   ├── RouteFallback.tsx    # ✓ The Suspense placeholder for a lazily-loaded route
@@ -106,7 +142,7 @@ src/
 ├── hooks/         # (Phase 4+) useTestimonials, useSubmission, useAdminStats, …
 ├── pages/         # ✓ HomePage, SubmitTestimonialPage (+ submissionValidation.ts), TestimonialWallPage
 ├── test/          # ✓ setup.ts — Vitest + Testing Library bootstrap + axe matchers
-├── App.tsx        # ✓ Router: /, /submit, /wall, /admin/login, /admin, /admin/inbox
+├── App.tsx        # ✓ Router: /, /submit, /wall, /admin/login, /admin, /admin/inbox, /app/*
 ├── main.tsx       # ✓ React entry point
 └── index.css      # ✓ Tailwind entry point + base layer
 ```
@@ -516,6 +552,10 @@ Every error response uses the same shape:
   same attributes.
 - **401 versus 403.** The CSRF filter runs before authorization, so the access-denied handler
   inspects the authentication state: anonymous → `401`, authenticated → `403`.
+- **Owner-scoped queries filter by the account, never by a parameter.** Every customer query is
+  scoped by the Space ids the signed-in account owns, and the Space list *is* the ownership check.
+  The dashboard's totals, its daily series and its recent submissions all go through it, so there
+  is no parameter that names another account and nothing to authorise beyond the session itself.
 - **Rate limiting lives on the server.** `POST /api/testimonials` and `POST /api/admin/session` are
   limited by a continuous-refill token bucket keyed on a salted SHA-256 hash of the client IP. The
   raw IP is never stored. The bucket **starts full** — a bucket that starts empty refuses the first
@@ -600,6 +640,8 @@ DELETE /api/app/spaces/{spaceId}/testimonials/{id}   # ✓ Phase 5
 GET    /api/app/spaces/{spaceId}/embed                # ✓ Phase 6
 PUT    /api/app/spaces/{spaceId}/embed                # ✓ Phase 6 — premium options refused on Free
 POST   /api/app/spaces/{spaceId}/embed/rotate-token   # ✓ Phase 6
+
+GET    /api/app/dashboard?days=          # ✓ Phase 8 — the account's own totals, daily series and recent submissions
 ```
 
 Public per-Space (no credentials — the visitor is not signed in):

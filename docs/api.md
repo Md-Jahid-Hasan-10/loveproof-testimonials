@@ -607,6 +607,26 @@ The password hash, the Stripe identifiers and the Google subject are never inclu
 | `POST /api/app/auth/change-password` | Changes the password of a signed-in account |
 | `POST /api/app/auth/profile` | Changes the display name |
 
+### The dashboard
+
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/app/dashboard` | The account's numbers. `?days=` selects the chart's range |
+
+Everything it returns is the signed-in account's own data. There is no parameter that names
+another account, so there is nothing to authorise beyond the session itself.
+
+Three rules shape the answer (PRD §4.6):
+
+- **Only the account's own data.** Every count is scoped by the Space ids the account owns.
+- **The buckets are UTC days.** A submission is filed under the UTC day it arrived on, so two
+  people looking at the dashboard at the same moment see the same chart.
+- **A day with no submissions shows zero.** The series has a point for every day in the range,
+  so the line does not lie about what happened in the gaps.
+
+`days` is clamped to `1…365` and defaults to `30`. An out-of-range value is answered with the
+clamped range rather than refused — the chart can draw any of them.
+
 ### Spaces
 
 | Endpoint | Purpose |
@@ -1002,6 +1022,7 @@ See [Billing endpoints](#billing-endpoints) for the plan catalogue and the meani
   "email": "ada@example.com",
   "displayName": "Ada",
   "emailVerified": true,
+  "hasPassword": true,
   "plan": "FREE",
   "subscriptionStatus": "NONE",
   "cancelAtPeriodEnd": false,
@@ -1009,6 +1030,44 @@ See [Billing endpoints](#billing-endpoints) for the plan catalogue and the meani
   "currentPeriodEnd": null
 }
 ```
+
+`hasPassword` says whether the account has a password to change. It is `false` for a Google-only
+account, which has none — the account settings page offers the password form only when there is
+one, so a Google-only account is not shown a form that could not work. The provider itself is
+not sent: the interface needs to know whether the form applies, not who the provider is.
+
+### `Dashboard`
+
+```json
+{
+  "totalSpaces": 2,
+  "totalTestimonials": 47,
+  "uniqueSubmitters": 39,
+  "daily": [
+    { "date": "2026-11-01", "count": 0 },
+    { "date": "2026-11-02", "count": 3 }
+  ],
+  "rangeDays": 30,
+  "recent": [
+    {
+      "id": "d3e2f1a0-0000-4000-8000-000000000001",
+      "spaceId": "c2b1f6b5-0000-4000-8000-000000000002",
+      "spaceTitle": "Ada’s Reviews",
+      "name": "Grace",
+      "content": "The service was excellent from start to finish.",
+      "rating": 5,
+      "submittedAt": "2026-11-07T09:15:00Z"
+    }
+  ],
+  "plan": "FREE",
+  "spacesLimit": 3
+}
+```
+
+`uniqueSubmitters` counts distinct email addresses across the account's testimonials. `daily` has
+one entry per day in the range, oldest first, including the days with no submissions. `plan` and
+`spacesLimit` let the interface show the upgrade notice and the Space allowance without a second
+request.
 
 ### `EmbedConfig`
 
