@@ -129,6 +129,9 @@ loveproof:
     # webhook is the primary mechanism; this is the backstop for one that
     # never arrived.
     reconcile-interval-ms: ${LOVEPROOF_BILLING_RECONCILE_INTERVAL_MS:3600000}
+    # How long the job waits before its first run. A deployment that has just
+    # started should not immediately call Stripe for every subscription.
+    reconcile-initial-delay-ms: ${LOVEPROOF_BILLING_RECONCILE_INITIAL_DELAY_MS:60000}
 
 logging:
   level:

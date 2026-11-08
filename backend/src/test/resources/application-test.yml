@@ -65,6 +65,10 @@ loveproof:
     premium-price-id: ''
   billing:
     reconcile-interval-ms: 3600000
+    # The job must not fire during a test run: it would reconcile the
+    # accounts another test is writing to, and the two would race. The tests
+    # that cover it call it directly instead.
+    reconcile-initial-delay-ms: 3600000
 
 server:
   servlet:
