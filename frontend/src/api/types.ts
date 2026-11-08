@@ -279,3 +279,84 @@ export interface CurationPayload {
   wallOfLove?: boolean
   visible?: boolean
 }
+
+/**
+ * A Space's embed configuration.
+ *
+ * Mirrors `EmbedConfigResponse` in the backend.
+ */
+export interface EmbedConfig {
+  spaceId: string
+  embedToken: string
+  layout: EmbedLayout
+  themeMode: EmbedThemeMode
+  backgroundColor: string | null
+  animation: boolean
+  /** Where the embed script is served from. */
+  scriptUrl: string
+  /** Where the embed fetches its data from. */
+  dataUrl: string
+}
+
+/**
+ * The layout an embed renders in.
+ *
+ * The carousel needs a Premium plan.
+ */
+export type EmbedLayout = 'masonry' | 'carousel'
+
+/**
+ * Whether an embed renders light or dark.
+ */
+export type EmbedThemeMode = 'light' | 'dark'
+
+/**
+ * One embed option, with whether it needs a Premium plan.
+ */
+export interface EmbedOption {
+  key: string
+  label: string
+  premium: boolean
+}
+
+/**
+ * The request to save an embed configuration.
+ *
+ * Every field is optional and a missing field means "leave this alone".
+ */
+export interface UpdateEmbedConfigPayload {
+  layout?: EmbedLayout
+  themeMode?: EmbedThemeMode
+  backgroundColor?: string | null
+  animation?: boolean
+}
+
+/**
+ * One testimonial as the embed sees it.
+ *
+ * There is no email: the embed ends up on somebody else's website.
+ */
+export interface EmbedTestimonial {
+  name: string
+  content: string
+  rating: number | null
+  company: string | null
+  jobTitle: string | null
+  website: string | null
+  socialLink: string | null
+}
+
+/**
+ * The public data an embed renders.
+ *
+ * Mirrors `PublicEmbedResponse` in the backend.
+ */
+export interface PublicEmbed {
+  title: string
+  subtitle: string | null
+  layout: EmbedLayout
+  themeMode: EmbedThemeMode
+  backgroundColor: string | null
+  animation: boolean
+  testimonials: EmbedTestimonial[]
+}

@@ -83,6 +83,12 @@ loveproof:
     display-name: ${LOVEPROOF_ADMIN_DISPLAY_NAME:LoveProof Admin}
     role: ${LOVEPROOF_ADMIN_ROLE:ADMIN}
     password-hash: ${LOVEPROOF_ADMIN_PASSWORD_HASH:$2a$10$8I2C1tkDWUsoUCny.Ns4b.eE4sXgQ7lcJsXQ.WGh2AMFMMAEFS99O}
+  app:
+    # The public base URL of the installation. It is the origin the customer
+    # reaches the interface on, and it is the origin the embed script and the
+    # embed data are served from -- the snippet has to point at whichever host
+    # serves this backend.
+    base-url: ${LOVEPROOF_APP_BASE_URL:http://localhost:5173}
   consent:
     # The identifier of the consent wording shown to the visitor at submission
     # time. Stored on every testimonial so the wording that was agreed to can

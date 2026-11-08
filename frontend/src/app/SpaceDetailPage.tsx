@@ -173,9 +173,14 @@ export default function SpaceDetailPage() {
           </p>
         </div>
 
-        <Link to={`/app/spaces/${space.id}/inbox`}>
-          <Button variant="secondary">Testimonials</Button>
-        </Link>
+        <div className="flex flex-wrap gap-2">
+          <Link to={`/app/spaces/${space.id}/embed`}>
+            <Button variant="secondary">Wall of Love</Button>
+          </Link>
+          <Link to={`/app/spaces/${space.id}/inbox`}>
+            <Button variant="secondary">Testimonials</Button>
+          </Link>
+        </div>
       </div>
 
       {error && <ErrorBanner message={error} />}

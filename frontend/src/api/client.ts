@@ -5,8 +5,10 @@ import type {
   CurationPayload,
   Customer,
   DashboardStats,
+  EmbedConfig,
   ErrorEnvelope,
   Page,
+  PublicEmbed,
   PublicSpace,
   PublicStats,
   Space,
@@ -16,6 +18,7 @@ import type {
   Testimonial,
   TestimonialStatus,
   Theme,
+  UpdateEmbedConfigPayload,
   UpdateSpacePayload,
 } from './types'
 
@@ -544,4 +547,40 @@ export function deleteSpaceTestimonial(
   id: string,
 ): Promise<void> {
   return request<void>('DELETE', `/app/spaces/${spaceId}/testimonials/${id}`)
+}
+
+/**
+ * Reads a Space's embed configuration, creating it the first time.
+ */
+export function getEmbedConfig(spaceId: string): Promise<EmbedConfig> {
+  return request<EmbedConfig>('GET', `/app/spaces/${spaceId}/embed`)
+}
+
+/**
+ * Saves a Space's embed configuration.
+ */
+export function updateEmbedConfig(
+  spaceId: string,
+  payload: UpdateEmbedConfigPayload,
+): Promise<EmbedConfig> {
+  return request<EmbedConfig>('PUT', `/app/spaces/${spaceId}/embed`, payload)
+}
+
+/**
+ * Rotates a Space's embed token.
+ *
+ * Every snippet that used the old token stops working, which is how the
+ * owner revokes an embed.
+ */
+export function rotateEmbedToken(spaceId: string): Promise<EmbedConfig> {
+  return request<EmbedConfig>('POST', `/app/spaces/${spaceId}/embed/rotate-token`)
+}
+
+/**
+ * Reads the public data an embed renders.
+ *
+ * Reachable without a session: the embed runs on somebody else's website.
+ */
+export function getPublicEmbed(token: string): Promise<PublicEmbed> {
+  return request<PublicEmbed>('GET', `/app/public/embeds/${token}`)
 }
