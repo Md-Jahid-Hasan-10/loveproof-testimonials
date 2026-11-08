@@ -1,12 +1,17 @@
 import type {
   AdminSession,
+  CreateSpacePayload,
   CreateTestimonialPayload,
+  Customer,
   DashboardStats,
   ErrorEnvelope,
   Page,
   PublicStats,
+  Space,
   Testimonial,
   TestimonialStatus,
+  Theme,
+  UpdateSpacePayload,
 } from './types'
 
 /**
@@ -285,4 +290,145 @@ export function deleteTestimonial(id: string): Promise<Testimonial> {
  */
 export function restoreTestimonial(id: string): Promise<Testimonial> {
   return request<Testimonial>('POST', `/admin/testimonials/${id}/restore`)
+}
+
+/* ------------------------------------------------------------------ *
+ * The customer surface.
+ *
+ * These calls ride on the customer session cookie. The session lives under
+ * its own attribute and its own filter chain, so a customer session is
+ * never accepted by the admin surface and the other way round.
+ * ------------------------------------------------------------------ */
+
+/**
+ * Registers an account.
+ *
+ * The account starts unverified: the backend emails a verification link.
+ */
+export function registerCustomer(payload: {
+  email: string
+  password: string
+  displayName?: string | null
+}): Promise<Customer> {
+  return request<Customer>('POST', '/app/auth/register', payload)
+}
+
+/**
+ * Signs a customer in.
+ *
+ * A wrong password and an unknown address fail the same way, with the same
+ * message, so the endpoint cannot be used to discover which addresses are
+ * registered.
+ */
+export function signInCustomer(email: string, password: string): Promise<Customer> {
+  return request<Customer>('POST', '/app/auth/sign-in', { email, password })
+}
+
+/**
+ * Signs the current customer out and invalidates the session server-side.
+ */
+export function signOutCustomer(): Promise<void> {
+  return request<void>('POST', '/app/auth/sign-out')
+}
+
+/**
+ * Reads the signed-in customer.
+ *
+ * Answers `401` when nobody is signed in, which is how the interface
+ * restores the session after a page refresh.
+ */
+export function getCurrentCustomer(): Promise<Customer> {
+  return request<Customer>('GET', '/app/auth/me')
+}
+
+/**
+ * Asks for a password-reset email.
+ *
+ * The endpoint always answers the same way, whether or not the address is
+ * registered, so it cannot be used to discover which addresses exist.
+ */
+export function requestPasswordReset(email: string): Promise<void> {
+  return request<void>('POST', '/app/auth/forgot-password', { email })
+}
+
+/**
+ * Completes a password reset with the token from the emailed link.
+ */
+export function resetPassword(token: string, password: string): Promise<void> {
+  return request<void>('POST', '/app/auth/reset-password', { token, password })
+}
+
+/**
+ * Verifies an email address with the token from the emailed link.
+ */
+export function verifyEmail(token: string): Promise<void> {
+  return request<void>('POST', '/app/auth/verify-email', { token })
+}
+
+/**
+ * Changes the password of the signed-in customer.
+ */
+export function changePassword(
+  currentPassword: string,
+  newPassword: string,
+): Promise<void> {
+  return request<void>('POST', '/app/auth/change-password', {
+    currentPassword,
+    newPassword,
+  })
+}
+
+/**
+ * Changes the display name of the signed-in customer.
+ */
+export function updateProfile(displayName: string): Promise<Customer> {
+  return request<Customer>('POST', '/app/auth/profile', { displayName })
+}
+
+/**
+ * Lists the signed-in customer's Spaces, newest first.
+ */
+export function listSpaces(): Promise<Space[]> {
+  return request<Space[]>('GET', '/app/spaces')
+}
+
+/**
+ * Reads one Space.
+ */
+export function getSpace(id: string): Promise<Space> {
+  return request<Space>('GET', `/app/spaces/${id}`)
+}
+
+/**
+ * Creates a Space.
+ */
+export function createSpace(payload: CreateSpacePayload): Promise<Space> {
+  return request<Space>('POST', '/app/spaces', payload)
+}
+
+/**
+ * Updates a Space.
+ */
+export function updateSpace(
+  id: string,
+  payload: UpdateSpacePayload,
+): Promise<Space> {
+  return request<Space>('PUT', `/app/spaces/${id}`, payload)
+}
+
+/**
+ * Deletes a Space and everything in it.
+ */
+export function deleteSpace(id: string): Promise<void> {
+  return request<void>('DELETE', `/app/spaces/${id}`)
+}
+
+/**
+ * The themes a Space can use.
+ *
+ * The premium ones are listed for everyone and marked as such, so the
+ * interface can explain what an upgrade buys.
+ */
+export function listThemes(): Promise<Theme[]> {
+  return request<Theme[]>('GET', '/app/spaces/themes')
 }

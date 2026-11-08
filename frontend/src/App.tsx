@@ -6,12 +6,20 @@ import HomePage from './pages/HomePage'
 import { AdminLayout } from './admin/AdminLayout'
 import { AuthProvider } from './admin/AuthContext'
 import { RequireAdmin } from './admin/RequireAdmin'
+import { AppLayout } from './app/AppLayout'
+import { CustomerAuthProvider } from './app/CustomerAuthContext'
+import { RequireCustomer } from './app/RequireCustomer'
 
 /**
  * The application shell.
  *
  * The public routes are open. The admin routes sit behind `RequireAdmin`,
- * which sends a signed-out visitor to the sign-in form.
+ * which sends a signed-out visitor to the sign-in form. The customer routes
+ * sit behind `RequireCustomer`, which does the same for customers.
+ *
+ * The two surfaces have separate session providers. They are not the same
+ * session with different permissions: the backend keeps them apart, so the
+ * interface keeps them apart too.
  *
  * The pages are loaded lazily, so the first paint only carries the code the
  * landing page needs. The admin surface in particular is code nobody but a
@@ -23,31 +31,45 @@ const TestimonialWallPage = lazy(() => import('./pages/TestimonialWallPage'))
 const AdminDashboardPage = lazy(() => import('./admin/AdminDashboardPage'))
 const AdminInboxPage = lazy(() => import('./admin/AdminInboxPage'))
 const AdminLoginPage = lazy(() => import('./admin/AdminLoginPage'))
+const CustomerSignInPage = lazy(() => import('./app/CustomerSignInPage'))
+const CustomerRegisterPage = lazy(() => import('./app/CustomerRegisterPage'))
+const DashboardPage = lazy(() => import('./app/DashboardPage'))
 
 export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Suspense fallback={<RouteFallback />}>
-          <Routes>
-            <Route element={<PublicLayout />}>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/submit" element={<SubmitTestimonialPage />} />
-              <Route path="/wall" element={<TestimonialWallPage />} />
-            </Route>
-
-            <Route path="/admin/login" element={<AdminLoginPage />} />
-
-            <Route element={<RequireAdmin />}>
-              <Route element={<AdminLayout />}>
-                <Route path="/admin" element={<AdminDashboardPage />} />
-                <Route path="/admin/inbox" element={<AdminInboxPage />} />
+        <CustomerAuthProvider>
+          <Suspense fallback={<RouteFallback />}>
+            <Routes>
+              <Route element={<PublicLayout />}>
+                <Route path="/" element={<HomePage />} />
+                <Route path="/submit" element={<SubmitTestimonialPage />} />
+                <Route path="/wall" element={<TestimonialWallPage />} />
               </Route>
-            </Route>
 
-            <Route path="*" element={<HomePage />} />
-          </Routes>
-        </Suspense>
+              <Route path="/admin/login" element={<AdminLoginPage />} />
+
+              <Route element={<RequireAdmin />}>
+                <Route element={<AdminLayout />}>
+                  <Route path="/admin" element={<AdminDashboardPage />} />
+                  <Route path="/admin/inbox" element={<AdminInboxPage />} />
+                </Route>
+              </Route>
+
+              <Route path="/app/sign-in" element={<CustomerSignInPage />} />
+              <Route path="/app/register" element={<CustomerRegisterPage />} />
+
+              <Route element={<RequireCustomer />}>
+                <Route element={<AppLayout />}>
+                  <Route path="/app" element={<DashboardPage />} />
+                </Route>
+              </Route>
+
+              <Route path="*" element={<HomePage />} />
+            </Routes>
+          </Suspense>
+        </CustomerAuthProvider>
       </AuthProvider>
     </BrowserRouter>
   )

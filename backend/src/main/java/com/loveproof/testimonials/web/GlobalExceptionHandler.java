@@ -20,6 +20,7 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 import com.loveproof.testimonials.exception.ConflictException;
 import com.loveproof.testimonials.exception.DuplicateTestimonialException;
 import com.loveproof.testimonials.exception.NotFoundException;
+import com.loveproof.testimonials.exception.PlanLimitExceededException;
 import com.loveproof.testimonials.web.dto.ErrorResponse;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -162,6 +163,30 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Handles an action that would take the account past a plan limit.
+     *
+     * <p>The answer is a 409 rather than a 403: nothing is wrong with the
+     * request, the account simply cannot do this yet. The message says what
+     * was reached and what to do about it, which is what the interface shows
+     * next to its upgrade prompt.
+     *
+     * @param ex      the exception
+     * @param request the servlet request
+     * @return a 409
+     */
+    @ExceptionHandler(PlanLimitExceededException.class)
+    public ResponseEntity<ErrorResponse> handlePlanLimit(
+            PlanLimitExceededException ex,
+            HttpServletRequest request) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(
+                "PLAN_LIMIT_REACHED",
+                ex.getMessage(),
+                Map.of(),
+                clock.instant(),
+                path(request)));
+    }
+
+    /**
      * Handles an unknown route.
      *
      * @param ex      the exception
@@ -172,7 +197,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleNoHandler(NoHandlerFoundException ex, HttpServletRequest request) {
         return notFound(request);
     }
-
     /**
      * Handles a request for a static resource that does not exist.
      *

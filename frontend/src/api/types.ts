@@ -88,3 +88,102 @@ export interface DashboardStats {
  * when it was deleted — so it is a separate view rather than a filter value.
  */
 export type InboxFilter = TestimonialStatus | 'ALL'
+
+/* ------------------------------------------------------------------ *
+ * The customer surface.
+ * ------------------------------------------------------------------ */
+
+/**
+ * The plan an account is on.
+ *
+ * The plan only ever changes from a confirmed Stripe webhook, so the
+ * interface reads it rather than assuming it.
+ */
+export type Plan = 'FREE' | 'PREMIUM'
+
+/**
+ * The signed-in customer.
+ *
+ * Mirrors `UserResponse` in the backend.
+ */
+export interface Customer {
+  id: string
+  email: string
+  displayName: string
+  emailVerified: boolean
+  plan: Plan
+  cancelAtPeriodEnd: boolean
+  subscriptionPastDue: boolean
+  currentPeriodEnd: string | null
+}
+
+/**
+ * A Space.
+ *
+ * Mirrors `SpaceResponse` in the backend.
+ */
+export interface Space {
+  id: string
+  title: string
+  subtitle: string | null
+  slug: string
+  publicUrl: string
+  fieldCompany: boolean
+  fieldCompanyRequired: boolean
+  fieldSocial: boolean
+  fieldSocialRequired: boolean
+  fieldWebsite: boolean
+  fieldWebsiteRequired: boolean
+  fieldJobTitle: boolean
+  fieldJobTitleRequired: boolean
+  ratingEnabled: boolean
+  theme: string
+  /** Whether the public URL can still change. */
+  slugLocked: boolean
+  /** Whether the owner may change it. A downgraded account has read-only Spaces. */
+  editable: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+/**
+ * One of the themes a Space can use.
+ */
+export interface Theme {
+  key: string
+  label: string
+  /** Whether the theme needs a Premium plan. */
+  premium: boolean
+}
+
+/**
+ * The request to create a Space.
+ */
+export interface CreateSpacePayload {
+  title: string
+  subtitle?: string | null
+  slug?: string | null
+  theme?: string | null
+}
+
+/**
+ * The request to update a Space.
+ *
+ * Every field is optional and a missing field means "leave this alone", so a
+ * partial update never resets the fields it did not mention.
+ */
+export interface UpdateSpacePayload {
+  title?: string
+  subtitle?: string | null
+  slug?: string | null
+  theme?: string | null
+  ratingEnabled?: boolean
+  fieldCompany?: boolean
+  fieldCompanyRequired?: boolean
+  fieldSocial?: boolean
+  fieldSocialRequired?: boolean
+  fieldWebsite?: boolean
+  fieldWebsiteRequired?: boolean
+  fieldJobTitle?: boolean
+  fieldJobTitleRequired?: boolean
+}

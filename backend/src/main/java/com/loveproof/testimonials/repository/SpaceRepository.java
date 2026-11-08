@@ -55,6 +55,18 @@ public interface SpaceRepository extends JpaRepository<Space, UUID> {
     Page<Space> findByOwnerIdOrderByCreatedAtDesc(UUID ownerId, Pageable pageable);
 
     /**
+     * Lists every Space an account owns, newest first.
+     *
+     * <p>Used where the whole list is needed regardless of size -- the
+     * dashboard sidebar and the downgrade rule, which has to see every Space
+     * to work out which three stay editable.
+     *
+     * @param ownerId the owning account
+     * @return the Spaces, newest first
+     */
+    List<Space> findByOwnerIdOrderByCreatedAtDesc(UUID ownerId);
+
+    /**
      * Lists every Space an account owns, oldest first.
      *
      * <p>The oldest Spaces are the ones that stay editable when a downgraded
