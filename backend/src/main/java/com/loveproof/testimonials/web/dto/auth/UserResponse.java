@@ -2,6 +2,7 @@ package com.loveproof.testimonials.web.dto.auth;
 
 import com.loveproof.testimonials.domain.AppUser;
 import com.loveproof.testimonials.domain.Plan;
+import com.loveproof.testimonials.domain.SubscriptionStatus;
 
 /**
  * The account as the client sees it.
@@ -15,6 +16,7 @@ public record UserResponse(
         String displayName,
         boolean emailVerified,
         Plan plan,
+        SubscriptionStatus subscriptionStatus,
         boolean cancelAtPeriodEnd,
         boolean subscriptionPastDue,
         String currentPeriodEnd) {
@@ -32,6 +34,7 @@ public record UserResponse(
                 user.getDisplayName(),
                 user.isEmailVerified(),
                 user.getPlan(),
+                user.getSubscriptionStatus(),
                 user.isCancelAtPeriodEnd(),
                 user.isSubscriptionPastDue(),
                 user.getCurrentPeriodEnd() == null ? null : user.getCurrentPeriodEnd().toString());
