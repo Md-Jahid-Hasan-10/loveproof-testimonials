@@ -26,13 +26,14 @@ export function Button({
   variant = 'primary',
   loading = false,
   disabled,
+  type = 'button',
   className = '',
   children,
   ...rest
 }: ButtonProps) {
   return (
     <button
-      type="button"
+      type={type}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
       className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors disabled:cursor-not-allowed ${VARIANT_CLASSES[variant]} ${className}`}

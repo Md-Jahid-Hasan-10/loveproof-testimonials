@@ -187,3 +187,59 @@ export interface UpdateSpacePayload {
   fieldJobTitle?: boolean
   fieldJobTitleRequired?: boolean
 }
+
+/**
+ * A Space as the public form sees it.
+ *
+ * Mirrors `PublicSpaceResponse` in the backend. It carries no owner identity
+ * and no editable flags: a visitor learns what to fill in and nothing about
+ * the account that owns the Space.
+ */
+export interface PublicSpace {
+  slug: string
+  title: string
+  subtitle: string | null
+  theme: string
+  fieldCompany: boolean
+  fieldCompanyRequired: boolean
+  fieldSocial: boolean
+  fieldSocialRequired: boolean
+  fieldWebsite: boolean
+  fieldWebsiteRequired: boolean
+  fieldJobTitle: boolean
+  fieldJobTitleRequired: boolean
+  ratingEnabled: boolean
+  /** Whether the Space is still collecting submissions. */
+  accepting: boolean
+}
+
+/**
+ * The request to submit a testimonial into a Space.
+ *
+ * The optional fields are only sent when the Space asks for them; the server
+ * decides which of them are required.
+ */
+export interface SubmitSpaceTestimonialPayload {
+  name: string
+  email: string
+  content: string
+  rating?: number | null
+  company?: string | null
+  socialLink?: string | null
+  website?: string | null
+  jobTitle?: string | null
+  consent?: boolean
+  /** The honeypot field. It is always empty for a real submission. */
+  website2?: string
+}
+
+/**
+ * The answer to a submission.
+ *
+ * The submitter's email is never included: the response identifies the
+ * testimonial, not the person behind it.
+ */
+export interface SubmittedTestimonial {
+  id: string | null
+  submittedAt: string
+}

@@ -36,6 +36,7 @@ const CustomerRegisterPage = lazy(() => import('./app/CustomerRegisterPage'))
 const DashboardPage = lazy(() => import('./app/DashboardPage'))
 const SpaceWizardPage = lazy(() => import('./app/SpaceWizardPage'))
 const SpaceDetailPage = lazy(() => import('./app/SpaceDetailPage'))
+const SpaceSubmitPage = lazy(() => import('./pages/SpaceSubmitPage'))
 
 export default function App() {
   return (
@@ -51,6 +52,13 @@ export default function App() {
               </Route>
 
               <Route path="/admin/login" element={<AdminLoginPage />} />
+
+              {/*
+                A Space's public page stands on its own: it carries the
+                owner's chosen theme, not the LoveProof shell, so it is
+                outside `PublicLayout`.
+              */}
+              <Route path="/s/:slug" element={<SpaceSubmitPage />} />
 
               <Route element={<RequireAdmin />}>
                 <Route element={<AdminLayout />}>

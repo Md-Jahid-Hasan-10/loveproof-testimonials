@@ -6,8 +6,11 @@ import type {
   DashboardStats,
   ErrorEnvelope,
   Page,
+  PublicSpace,
   PublicStats,
   Space,
+  SubmitSpaceTestimonialPayload,
+  SubmittedTestimonial,
   Testimonial,
   TestimonialStatus,
   Theme,
@@ -431,4 +434,31 @@ export function deleteSpace(id: string): Promise<void> {
  */
 export function listThemes(): Promise<Theme[]> {
   return request<Theme[]>('GET', '/app/spaces/themes')
+}
+
+/**
+ * Reads a Space's public form configuration.
+ *
+ * Reachable without a session: this is what a visitor's browser loads when
+ * they open the Space's public page.
+ */
+export function getPublicSpace(slug: string): Promise<PublicSpace> {
+  return request<PublicSpace>('GET', `/app/public/spaces/${slug}`)
+}
+
+/**
+ * Submits a testimonial into a Space.
+ *
+ * Reachable without a session. The response identifies the testimonial but
+ * never carries the submitter's email.
+ */
+export function submitSpaceTestimonial(
+  slug: string,
+  payload: SubmitSpaceTestimonialPayload,
+): Promise<SubmittedTestimonial> {
+  return request<SubmittedTestimonial>(
+    'POST',
+    `/app/public/spaces/${slug}/testimonials`,
+    payload,
+  )
 }
