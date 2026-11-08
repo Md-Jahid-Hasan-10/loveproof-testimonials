@@ -139,4 +139,45 @@ public interface SpaceTestimonialRepository
             @Param("spaceIds") List<UUID> spaceIds,
             @Param("from") Instant from,
             @Param("to") Instant to);
+
+    /**
+     * Counts every testimonial across an account's Spaces.
+     *
+     * <p>The dashboard's headline number. It is scoped by the Space ids
+     * rather than by a join, because the Space list is already loaded and
+     * the ids are the whole of the ownership check.
+     *
+     * @param spaceIds the Spaces to count across
+     * @return the number of testimonials
+     */
+    @Query("SELECT COUNT(t) FROM SpaceTestimonial t WHERE t.spaceId IN :spaceIds")
+    long countAcrossSpaces(@Param("spaceIds") List<UUID> spaceIds);
+
+    /**
+     * Counts the distinct submitters across an account's Spaces.
+     *
+     * <p>Unique submitters is the number of distinct email addresses across
+     * the account's testimonials — one person who submitted to two Spaces
+     * counts once.
+     *
+     * @param spaceIds the Spaces to count across
+     * @return the number of distinct submitters
+     */
+    @Query("SELECT COUNT(DISTINCT lower(t.email)) FROM SpaceTestimonial t WHERE t.spaceId IN :spaceIds")
+    long countDistinctSubmittersAcrossSpaces(@Param("spaceIds") List<UUID> spaceIds);
+
+    /**
+     * The most recent submissions across an account's Spaces.
+     *
+     * <p>The dashboard's "recent submissions" list. It is not paged because
+     * the dashboard shows a fixed, short list rather than a browsable one.
+     *
+     * @param spaceIds the Spaces to draw from
+     * @param limit    how many to return
+     * @return the testimonials, newest first
+     */
+    @Query("SELECT t FROM SpaceTestimonial t WHERE t.spaceId IN :spaceIds ORDER BY t.submittedAt DESC")
+    List<SpaceTestimonial> findRecentAcrossSpaces(
+            @Param("spaceIds") List<UUID> spaceIds,
+            @Param("limit") int limit);
 }
