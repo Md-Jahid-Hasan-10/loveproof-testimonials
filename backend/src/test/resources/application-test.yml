@@ -1,0 +1,57 @@
+# Test profile.
+# The datasource URL is supplied at runtime by Testcontainers (see the
+# PostgreSQLContainer base test class); these values are only fallbacks.
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/loveproof_test}
+    username: ${SPRING_DATASOURCE_USERNAME:loveproof}
+    password: ${SPRING_DATASOURCE_PASSWORD:loveproof}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+    clean-disabled: true
+    placeholders:
+      # Test fixtures use obviously fake values. The password hash below is the
+      # BCrypt (cost 10) hash of "test-password" and authenticates nothing
+      # outside the test suite.
+      #
+      # A BCrypt hash contains '$' characters. They are written as ${dollar} so
+      # Flyway expands them to a literal '$' instead of reading them as the
+      # start of a placeholder.
+      #
+      # The values are read from the `loveproof.admin.*` properties rather than
+      # inlined here: a nested ${...} default would be resolved by Spring (which
+      # knows nothing about the `dollar` placeholder) and would reach the
+      # database with the literal text `${dollar}` still in it.
+      dollar: '$'
+      admin_username: ${loveproof.admin.username}
+      admin_display_name: ${loveproof.admin.display-name}
+      admin_role: ${loveproof.admin.role}
+      admin_password_hash: ${loveproof.admin.password-hash}
+
+loveproof:
+  admin:
+    username: testadmin
+    display-name: Test Admin
+    role: ADMIN
+    # The BCrypt (cost 10) hash of "test-password".
+    password-hash: $2a$10$UfwtiQtmSMSKJkh0sOju3OwtOv71VHnabyvaKEgBuhD1isEeTR6l6
+  consent:
+    text-version: v1-test
+  security:
+    ip-hash-salt: test-salt
+
+server:
+  servlet:
+    session:
+      cookie:
+        # The test server is plain HTTP, so the cookies must not carry `Secure`.
+        secure: false
+
+logging:
+  level:
+    root: WARN
+    com.loveproof.testimonials: INFO

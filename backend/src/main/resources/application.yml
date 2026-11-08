@@ -1,0 +1,99 @@
+spring:
+  application:
+    name: loveproof-testimonials
+
+  # Flyway owns the schema. Hibernate may only verify it.
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+        format_sql: false
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+    placeholders:
+      # Seeded administrator. The hash is the BCrypt (cost 10) hash of the
+      # documented development-only password and is overridable via the
+      # environment. No real credential lives in this repository.
+      #
+      # A BCrypt hash contains '$' characters, which Flyway reads as the start of
+      # a placeholder. They are written as ${dollar} so Flyway expands them to a
+      # literal '$' instead of reading them as the start of a placeholder.
+      #
+      # The values are read from the `loveproof.admin.*` properties rather than
+      # inlined here: a nested ${...} default would be resolved by Spring (which
+      # knows nothing about the `dollar` placeholder) and would reach the
+      # database with the literal text `${dollar}` still in it.
+      dollar: '$'
+      admin_username: ${loveproof.admin.username}
+      admin_display_name: ${loveproof.admin.display-name}
+      admin_role: ${loveproof.admin.role}
+      admin_password_hash: ${loveproof.admin.password-hash}
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/loveproof}
+    username: ${SPRING_DATASOURCE_USERNAME:loveproof}
+    password: ${SPRING_DATASOURCE_PASSWORD:loveproof}
+
+  threads:
+    virtual:
+      enabled: true
+
+server:
+  port: ${SERVER_PORT:8080}
+  error:
+    include-message: never
+    include-stacktrace: never
+  servlet:
+    session:
+      # The session cookie carries the session id, so it must be HttpOnly: the
+      # frontend never needs to read it, and a script that could read it could
+      # hijack the session. SameSite=Lax keeps the cookie off cross-site POSTs
+      # (the classic CSRF delivery route) while still sending it on top-level
+      # navigations.
+      cookie:
+        name: SESSION
+        http-only: true
+        same-site: lax
+        secure: ${LOVEPROOF_SECURE_COOKIES:false}
+        path: /
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+loveproof:
+  admin:
+    # The seeded administrator. The password hash is the BCrypt (cost 10) hash
+    # of the development-only password "loveproof"; override it in any shared
+    # environment with LOVEPROOF_ADMIN_PASSWORD_HASH.
+    username: ${LOVEPROOF_ADMIN_USERNAME:admin}
+    display-name: ${LOVEPROOF_ADMIN_DISPLAY_NAME:LoveProof Admin}
+    role: ${LOVEPROOF_ADMIN_ROLE:ADMIN}
+    password-hash: ${LOVEPROOF_ADMIN_PASSWORD_HASH:$2a$10$8I2C1tkDWUsoUCny.Ns4b.eE4sXgQ7lcJsXQ.WGh2AMFMMAEFS99O}
+  consent:
+    # The identifier of the consent wording shown to the visitor at submission
+    # time. Stored on every testimonial so the wording that was agreed to can
+    # be evidenced later.
+    text-version: ${LOVEPROOF_CONSENT_TEXT_VERSION:v1}
+  security:
+    # Salt used when hashing client IP addresses for rate-limit bookkeeping.
+    # The raw address is never stored or logged.
+    ip-hash-salt: ${LOVEPROOF_IP_HASH_SALT:loveproof-local-salt}
+
+logging:
+  level:
+    root: INFO
+    com.loveproof.testimonials: INFO

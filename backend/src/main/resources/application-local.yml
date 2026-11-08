@@ -1,0 +1,11 @@
+# Local development profile.
+# Human-readable logs, permissive CORS-free same-origin dev setup.
+logging:
+  level:
+    root: INFO
+    com.loveproof.testimonials: DEBUG
+    org.springframework.security: INFO
+
+spring:
+  jpa:
+    show-sql: false

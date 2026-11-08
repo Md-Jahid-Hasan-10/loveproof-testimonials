@@ -1,0 +1,25 @@
+# Production profile.
+#
+# The only difference from the default profile is that the session cookie is
+# marked `Secure`, so the browser will only send it over HTTPS. Everything else
+# — the session lifetime, SameSite, the CSRF token repository — is inherited.
+#
+# A production deployment must sit behind a TLS-terminating proxy. If the
+# application itself is reached over plain HTTP, the `Secure` cookie is never
+# sent and every administrator is silently locked out.
+
+server:
+  servlet:
+    session:
+      cookie:
+        secure: true
+        # A shorter idle timeout than the default: the session cookie is only
+        # useful for a working administrator, and a long-lived session id is
+        # a long-lived risk if the machine is left unattended.
+        max-age: 3600
+
+logging:
+  level:
+    root: WARN
+    com.loveproof.testimonials: INFO
+    org.springframework.security: WARN
