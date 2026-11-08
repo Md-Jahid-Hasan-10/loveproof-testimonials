@@ -89,7 +89,7 @@ export function AppLayout() {
                 New Space
               </NavLink>
               <NavLink
-                to="/app/settings"
+                to="/app/billing"
                 className={({ isActive }) =>
                   `rounded-lg px-3 py-2 text-sm font-medium ${
                     isActive
@@ -98,7 +98,7 @@ export function AppLayout() {
                   }`
                 }
               >
-                Settings
+                Billing
               </NavLink>
             </nav>
           </div>
@@ -127,6 +127,30 @@ export function AppLayout() {
           </div>
         </div>
       </header>
+
+      {/*
+        The past-due banner spans the whole page rather than sitting inside
+        the content column: a failed payment is not a billing-page fact, it
+        is something the customer needs to know whichever page they are on
+        (PRD §4.9).
+      */}
+      {customer?.subscriptionPastDue && (
+        <div className="border-b border-amber-200 bg-amber-50">
+          <div className="mx-auto max-w-6xl px-4 py-3">
+            <p role="status" className="text-sm text-amber-900">
+              We could not take your payment. Your Premium access continues
+              while we retry.{' '}
+              <Link
+                to="/app/billing"
+                className="font-semibold text-amber-900 underline"
+              >
+                Check your card details
+              </Link>
+              .
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-4 py-8 md:flex-row">
         <aside className="md:w-64 md:shrink-0">

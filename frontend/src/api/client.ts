@@ -1,5 +1,6 @@
 import type {
   AdminSession,
+  Billing,
   CreateSpacePayload,
   CreateTestimonialPayload,
   CurationPayload,
@@ -583,4 +584,52 @@ export function rotateEmbedToken(spaceId: string): Promise<EmbedConfig> {
  */
 export function getPublicEmbed(token: string): Promise<PublicEmbed> {
   return request<PublicEmbed>('GET', `/app/public/embeds/${token}`)
+}
+
+/* ------------------------------------------------------------------ *
+ * The billing surface.
+ *
+ * None of these calls changes a plan. The checkout creates a Stripe
+ * session, and the cancel and resume ask Stripe to do something; in every
+ * case the plan changes only once the webhook says so.
+ * ------------------------------------------------------------------ */
+
+/**
+ * Reads the signed-in account's billing state.
+ */
+export function getBilling(): Promise<Billing> {
+  return request<Billing>('GET', '/app/billing')
+}
+
+/**
+ * Creates a Checkout Session for the Premium plan.
+ *
+ * The browser is sent to the returned URL. Reaching the success page is not
+ * a purchase: the plan changes when Stripe confirms the payment.
+ */
+export function createCheckoutSession(): Promise<{ url: string }> {
+  return request<{ url: string }>('POST', '/app/billing/checkout')
+}
+
+/**
+ * Opens the Stripe billing portal, where a customer manages their card.
+ */
+export function createBillingPortalSession(): Promise<{ url: string }> {
+  return request<{ url: string }>('POST', '/app/billing/portal')
+}
+
+/**
+ * Asks Stripe to cancel the subscription at the close of the paid period.
+ *
+ * The plan stays Premium until Stripe reports the subscription as ended.
+ */
+export function cancelSubscription(): Promise<void> {
+  return request<void>('POST', '/app/billing/cancel')
+}
+
+/**
+ * Asks Stripe to keep the subscription running.
+ */
+export function resumeSubscription(): Promise<void> {
+  return request<void>('POST', '/app/billing/resume')
 }

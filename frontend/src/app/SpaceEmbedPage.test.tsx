@@ -25,6 +25,7 @@ const CUSTOMER = {
   displayName: 'Ada',
   emailVerified: true,
   plan: 'FREE',
+  subscriptionStatus: 'NONE',
   cancelAtPeriodEnd: false,
   subscriptionPastDue: false,
   currentPeriodEnd: null,

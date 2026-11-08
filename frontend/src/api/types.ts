@@ -102,6 +102,24 @@ export type InboxFilter = TestimonialStatus | 'ALL'
 export type Plan = 'FREE' | 'PREMIUM'
 
 /**
+ * The subscription status.
+ *
+ * The values are Stripe's own vocabulary, lower-cased, so the interface can
+ * show what Stripe reported without a second translation table. `NONE` means
+ * the account has never subscribed.
+ */
+export type SubscriptionStatus =
+  | 'NONE'
+  | 'active'
+  | 'trialing'
+  | 'past_due'
+  | 'canceled'
+  | 'unpaid'
+  | 'incomplete'
+  | 'incomplete_expired'
+  | 'paused'
+
+/**
  * The signed-in customer.
  *
  * Mirrors `UserResponse` in the backend.
@@ -112,9 +130,42 @@ export interface Customer {
   displayName: string
   emailVerified: boolean
   plan: Plan
+  subscriptionStatus: SubscriptionStatus
   cancelAtPeriodEnd: boolean
   subscriptionPastDue: boolean
   currentPeriodEnd: string | null
+}
+
+/**
+ * One of the plans, with its features and its limits.
+ *
+ * Mirrors `PlanOption` in the backend. The limits are read from the server
+ * rather than hard-coded here, so the interface cannot drift from the rule
+ * the server actually enforces.
+ */
+export interface PlanOption {
+  plan: Plan
+  label: string
+  price: string
+  spaces: number
+  testimonialsPerSpace: number
+  features: string[]
+}
+
+/**
+ * The signed-in account's billing state.
+ *
+ * Mirrors `BillingResponse` in the backend.
+ */
+export interface Billing {
+  plan: Plan
+  subscriptionStatus: SubscriptionStatus
+  cancelAtPeriodEnd: boolean
+  pastDue: boolean
+  currentPeriodEnd: string | null
+  /** Whether this installation has Stripe configured at all. */
+  billingConfigured: boolean
+  plans: PlanOption[]
 }
 
 /**
