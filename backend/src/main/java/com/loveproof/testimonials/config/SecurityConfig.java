@@ -5,6 +5,7 @@ import java.time.Clock;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
@@ -69,11 +70,18 @@ public class SecurityConfig {
      * {@link AdminUserDetailsService}, so credentials are checked against the BCrypt hash in the
      * {@code admin_user} table.
      *
+     * <p>It is marked {@code @Primary} because the customer surface has its own manager
+     * ({@link AppSecurityConfig#appAuthenticationManager}). Without a primary, Spring Security's
+     * {@code AuthenticationConfiguration} cannot decide which one to publish as the global
+     * manager, and the context fails to start. The customer chain names its own manager
+     * explicitly, so this primary only serves the admin chain.
+     *
      * @param userDetailsService the administrator store
      * @param passwordEncoder the bcrypt encoder
      * @return the authentication manager
      */
     @Bean
+    @Primary
     public AuthenticationManager authenticationManager(
             AdminUserDetailsService userDetailsService,
             PasswordEncoder passwordEncoder) {
@@ -106,6 +114,7 @@ public class SecurityConfig {
      * @param http the builder
      * @param clock the clock, used for the error timestamps
      * @param securityContextRepository the repository holding the security context
+     * @param authenticationManager the manager that checks administrator credentials
      * @param secureCookies whether the cookies carry the {@code Secure} attribute; the
      *                      {@code prod} profile sets this to {@code true}
      * @return the configured chain
@@ -116,6 +125,7 @@ public class SecurityConfig {
             HttpSecurity http,
             Clock clock,
             SecurityContextRepository securityContextRepository,
+            AuthenticationManager authenticationManager,
             @Value("${server.servlet.session.cookie.secure:false}") boolean secureCookies)
             throws Exception {
 
@@ -128,6 +138,10 @@ public class SecurityConfig {
         csrfRequestHandler.setCsrfRequestAttributeName(null);
 
         http
+            // The admin chain checks administrator credentials against the
+            // `admin_user` table, never against the customer accounts.
+            .authenticationManager(authenticationManager)
+
             // The API is stateless for the public surface and session-based for the
             // admin surface; the session is created on demand, never eagerly.
             .sessionManagement(session -> session
