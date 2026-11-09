@@ -143,43 +143,87 @@ export function DashboardChart({ daily, rangeDays }: DashboardChartProps) {
     .map((point) => `${point.x.toFixed(2)},${point.y.toFixed(2)}`)
     .join(' ')
 
+  /*
+    The area under the line is closed against the bottom edge of the drawing
+    area and filled with a gradient that fades to nothing, so the series reads
+    as a shape rather than as a bare stroke.
+  */
+  const area = `${line} ${PADDING_LEFT + drawableWidth},${PADDING_TOP + drawableHeight} ${PADDING_LEFT},${PADDING_TOP + drawableHeight}`
+
+  /*
+    The horizontal guides are drawn behind the series. They give the chart a
+    scale to be read against without adding axis labels to every day.
+  */
+  const guides = [0, 0.5, 1].map((fraction) => ({
+    y: PADDING_TOP + drawableHeight * (1 - fraction),
+    value: Math.round(peak * fraction),
+  }))
+
   return (
     <div>
-      <svg
-        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-        className="h-40 w-full"
-        role="img"
-        aria-label={`Testimonials submitted per day over the last ${rangeDays} days. The busiest day had ${peak}.`}
-      >
-        <polyline
-          points={line}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinejoin="round"
-          strokeLinecap="round"
-          className="text-brand-500"
-        />
-        {points.map((point) => (
-          <circle
-            key={point.date}
-            cx={point.x}
-            cy={point.y}
-            r={point.count > 0 ? 3 : 0}
-            className="fill-brand-600"
-          >
-            <title>
-              {shortDate(point.date)}: {point.count}
-            </title>
-          </circle>
-        ))}
-      </svg>
+      <div className="relative overflow-hidden rounded-control border border-slate-200/80 bg-gradient-to-b from-brand-50/60 to-white px-2 pt-3">
+        <svg
+          viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+          className="h-44 w-full"
+          role="img"
+          aria-label={`Testimonials submitted per day over the last ${rangeDays} days. The busiest day had ${peak}.`}
+        >
+          <defs>
+            <linearGradient
+              id="daily-area"
+              x1="0"
+              y1="0"
+              x2="0"
+              y2="1"
+            >
+              <stop offset="0%" stopColor="rgb(99 102 241)" stopOpacity="0.28" />
+              <stop offset="100%" stopColor="rgb(99 102 241)" stopOpacity="0" />
+            </linearGradient>
+          </defs>
 
-      <p className="mt-1 flex justify-between text-xs text-slate-500">
+          {guides.map((guide) => (
+            <line
+              key={guide.y}
+              x1={PADDING_LEFT}
+              y1={guide.y}
+              x2={PADDING_LEFT + drawableWidth}
+              y2={guide.y}
+              stroke="rgb(226 232 240)"
+              strokeWidth="1"
+              strokeDasharray={guide.value === 0 ? undefined : '3 4'}
+            />
+          ))}
+
+          <polygon points={area} fill="url(#daily-area)" />
+
+          <polyline
+            points={line}
+            fill="none"
+            stroke="rgb(79 70 229)"
+            strokeWidth="2.5"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+          {points.map((point) => (
+            <circle
+              key={point.date}
+              cx={point.x}
+              cy={point.y}
+              r={point.count > 0 ? 3.5 : 0}
+              className="fill-brand-600 stroke-white"
+              strokeWidth="1.5"
+            >
+              <title>
+                {shortDate(point.date)}: {point.count}
+              </title>
+            </circle>
+          ))}
+        </svg>
+      </div>
+
+      <p className="mt-2 flex justify-between text-xs font-medium text-slate-500">
         <span>{shortDate(daily[0].date)}</span>
-        <span>
-          {shortDate(daily[daily.length - 1].date)}
-        </span>
+        <span>{shortDate(daily[daily.length - 1].date)}</span>
       </p>
 
       <ChartTable daily={daily} />

@@ -97,31 +97,28 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-          Account settings
-        </h1>
-        <p className="mt-1 text-sm text-slate-600">
+        <p className="eyebrow">Account</p>
+        <h1 className="page-title mt-1.5">Account settings</h1>
+        <p className="page-subtitle">
           Your name, your password and your email address.
         </p>
       </div>
 
       {error && <ErrorBanner message={error} onDismiss={() => setError(null)} />}
 
-      <Card className="p-6">
-        <h2 className="text-base font-semibold text-slate-900">
-          Email address
-        </h2>
-        <p className="mt-1 text-sm text-slate-600">{customer.email}</p>
+      <Card className="p-6" elevation="raised">
+        <h2 className="section-title">Email address</h2>
+        <p className="section-subtitle">{customer.email}</p>
 
         {customer.emailVerified ? (
           <p
             role="status"
-            className="mt-3 inline-block rounded-md bg-emerald-50 px-2 py-1 text-sm font-medium text-emerald-800"
+            className="pill mt-3 bg-emerald-50 text-emerald-800"
           >
             Verified
           </p>
         ) : (
-          <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+          <div className="mt-3 rounded-control border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50/60 px-3 py-2">
             <p className="text-sm text-amber-900">
               This address is not verified yet. Open the link we emailed you
               to finish setting up your account.
@@ -130,11 +127,9 @@ export default function SettingsPage() {
         )}
       </Card>
 
-      <Card className="p-6">
-        <h2 className="text-base font-semibold text-slate-900">
-          Your name
-        </h2>
-        <p className="mt-1 text-sm text-slate-600">
+      <Card className="p-6" elevation="raised">
+        <h2 className="section-title">Your name</h2>
+        <p className="section-subtitle">
           This is the name your customers see on the pages you share.
         </p>
 
@@ -147,7 +142,7 @@ export default function SettingsPage() {
                 value={displayName}
                 maxLength={100}
                 onChange={(event) => setDisplayName(event.target.value)}
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className="control"
               />
             )}
           </Field>
@@ -174,11 +169,9 @@ export default function SettingsPage() {
       </Card>
 
       {hasPassword ? (
-        <Card className="p-6">
-          <h2 className="text-base font-semibold text-slate-900">
-            Password
-          </h2>
-          <p className="mt-1 text-sm text-slate-600">
+        <Card className="p-6" elevation="raised">
+          <h2 className="section-title">Password</h2>
+          <p className="section-subtitle">
             Choose a password of at least eight characters.
           </p>
 
@@ -191,7 +184,7 @@ export default function SettingsPage() {
                   value={currentPassword}
                   autoComplete="current-password"
                   onChange={(event) => setCurrentPassword(event.target.value)}
-                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  className="control"
                 />
               )}
             </Field>
@@ -204,7 +197,7 @@ export default function SettingsPage() {
                   value={newPassword}
                   autoComplete="new-password"
                   onChange={(event) => setNewPassword(event.target.value)}
-                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  className="control"
                 />
               )}
             </Field>
@@ -217,7 +210,7 @@ export default function SettingsPage() {
                   value={confirmPassword}
                   autoComplete="new-password"
                   onChange={(event) => setConfirmPassword(event.target.value)}
-                  className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  className="control"
                 />
               )}
             </Field>
@@ -253,11 +246,9 @@ export default function SettingsPage() {
           </div>
         </Card>
       ) : (
-        <Card className="p-6">
-          <h2 className="text-base font-semibold text-slate-900">
-            Password
-          </h2>
-          <p className="mt-1 text-sm text-slate-600">
+        <Card className="p-6" elevation="raised">
+          <h2 className="section-title">Password</h2>
+          <p className="section-subtitle">
             You sign in with Google, so this account has no password to
             change.
           </p>

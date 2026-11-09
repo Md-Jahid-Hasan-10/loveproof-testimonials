@@ -219,12 +219,9 @@ export default function SpaceInboxPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="truncate text-2xl font-bold tracking-tight text-slate-900">
-            Testimonials
-          </h1>
-          {space && (
-            <p className="mt-1 text-sm text-slate-600">{space.title}</p>
-          )}
+          <p className="eyebrow">Inbox</p>
+          <h1 className="page-title mt-1.5 truncate">Testimonials</h1>
+          {space && <p className="page-subtitle">{space.title}</p>}
         </div>
 
         {space && (
@@ -238,14 +235,14 @@ export default function SpaceInboxPage() {
       {notice && (
         <p
           role="status"
-          className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900"
+          className="rounded-card border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900"
         >
           {notice}
         </p>
       )}
 
       {!editable && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+        <div className="rounded-card border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50/60 p-4">
           <p className="text-sm font-semibold text-amber-900">
             This Space is read-only.
           </p>
@@ -257,7 +254,7 @@ export default function SpaceInboxPage() {
         </div>
       )}
 
-      <Card className="p-4">
+      <Card className="p-4" elevation="raised">
         <form
           onSubmit={handleSearchSubmit}
           className="flex flex-wrap items-end gap-3"
@@ -265,7 +262,7 @@ export default function SpaceInboxPage() {
           <div className="min-w-48 flex-1">
             <label
               htmlFor="inbox-search"
-              className="block text-sm font-medium text-slate-900"
+              className="block text-sm font-semibold tracking-tight text-slate-800"
             >
               Search
             </label>
@@ -276,7 +273,7 @@ export default function SpaceInboxPage() {
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Name, email or text"
-              className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="control mt-1.5"
             />
           </div>
           <Button type="submit" variant="secondary">
@@ -356,7 +353,7 @@ export default function SpaceInboxPage() {
       <ul className="space-y-3">
         {testimonials.map((testimonial) => (
           <li key={testimonial.id}>
-            <Card className="p-4">
+            <Card className="p-5" elevation="raised">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
@@ -367,17 +364,17 @@ export default function SpaceInboxPage() {
                       <ReadOnlyStars rating={testimonial.rating} />
                     )}
                     {testimonial.favorite && (
-                      <span className="rounded-md bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-900">
+                      <span className="pill bg-amber-100 text-amber-900">
                         Favourite
                       </span>
                     )}
                     {testimonial.wallOfLove && (
-                      <span className="rounded-md bg-brand-100 px-2 py-0.5 text-xs font-semibold text-brand-800">
+                      <span className="pill bg-brand-100 text-brand-800">
                         Wall of Love
                       </span>
                     )}
                     {!testimonial.visible && (
-                      <span className="rounded-md bg-slate-200 px-2 py-0.5 text-xs font-semibold text-slate-700">
+                      <span className="pill bg-slate-200 text-slate-700">
                         Hidden
                       </span>
                     )}
@@ -405,7 +402,7 @@ export default function SpaceInboxPage() {
                             content: event.target.value,
                           })
                         }
-                        className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                        className="control"
                       />
                       <div className="flex gap-2">
                         <Button
@@ -521,14 +518,11 @@ export default function SpaceInboxPage() {
           aria-labelledby="confirm-delete-title"
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4"
         >
-          <Card className="w-full max-w-md p-6">
-            <h2
-              id="confirm-delete-title"
-              className="text-base font-semibold text-slate-900"
-            >
+          <Card className="w-full max-w-md p-6" elevation="floating">
+            <h2 id="confirm-delete-title" className="section-title">
               Delete this testimonial?
             </h2>
-            <p className="mt-2 text-sm text-slate-600">
+            <p className="mt-2 text-sm leading-relaxed text-slate-600">
               The testimonial from {deleting.name} will be removed for good.
               This cannot be undone.
             </p>

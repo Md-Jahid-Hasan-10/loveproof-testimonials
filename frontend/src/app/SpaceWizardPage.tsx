@@ -168,10 +168,9 @@ export default function SpaceWizardPage() {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-          Create a Space
-        </h1>
-        <p className="mt-1 text-sm text-slate-600">
+        <p className="eyebrow">New Space</p>
+        <h1 className="page-title mt-1.5">Create a Space</h1>
+        <p className="page-subtitle">
           A Space collects testimonials on its own public page.
         </p>
       </div>
@@ -184,11 +183,11 @@ export default function SpaceWizardPage() {
               onClick={() => index <= stepIndex && setStep(name)}
               disabled={index > stepIndex}
               aria-current={name === step ? 'step' : undefined}
-              className={`rounded-lg px-3 py-1.5 text-sm font-medium ${
+              className={`rounded-full px-3.5 py-1.5 text-sm font-semibold transition ${
                 name === step
-                  ? 'bg-brand-600 text-white'
+                  ? 'bg-gradient-to-r from-brand-600 to-brand-500 text-white shadow-brand'
                   : index < stepIndex
-                    ? 'bg-brand-50 text-brand-700'
+                    ? 'bg-brand-50 text-brand-700 ring-1 ring-inset ring-brand-100 hover:bg-brand-100'
                     : 'bg-slate-100 text-slate-500'
               }`}
             >
@@ -200,7 +199,7 @@ export default function SpaceWizardPage() {
 
       {error && <ErrorBanner message={error} />}
 
-      <Card className="p-6">
+      <Card className="p-6" elevation="raised">
         {step === 'Details' && (
           <div className="space-y-4">
             <Field
@@ -216,7 +215,7 @@ export default function SpaceWizardPage() {
                   required
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
-                  className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  className="control"
                 />
               )}
             </Field>
@@ -232,7 +231,7 @@ export default function SpaceWizardPage() {
                   type="text"
                   value={subtitle}
                   onChange={(event) => setSubtitle(event.target.value)}
-                  className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  className="control"
                 />
               )}
             </Field>
@@ -253,7 +252,7 @@ export default function SpaceWizardPage() {
                       setSlugTouched(true)
                       setSlug(event.target.value)
                     }}
-                    className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                    className="control"
                   />
                 </div>
               )}
@@ -276,7 +275,7 @@ export default function SpaceWizardPage() {
             {OPTIONAL_FIELDS.map((field) => (
               <fieldset
                 key={field.key}
-                className="rounded-lg border border-slate-200 p-4"
+                className="rounded-card border border-slate-200/80 bg-slate-50/60 p-4"
               >
                 <legend className="sr-only">{field.label}</legend>
 
@@ -361,10 +360,10 @@ export default function SpaceWizardPage() {
                   return (
                     <label
                       key={candidate.key}
-                      className={`flex cursor-pointer items-start gap-3 rounded-lg border p-4 ${
+                      className={`flex cursor-pointer items-start gap-3 rounded-card border p-4 transition ${
                         theme === candidate.key
-                          ? 'border-brand-500 bg-brand-50'
-                          : 'border-slate-200'
+                          ? 'border-brand-500 bg-brand-50 shadow-card ring-1 ring-brand-200'
+                          : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-card'
                       } ${locked ? 'opacity-70' : ''}`}
                     >
                       <input
@@ -407,7 +406,7 @@ export default function SpaceWizardPage() {
               </p>
             </div>
 
-            <label className="flex items-center gap-3 rounded-lg border border-slate-200 p-4">
+            <label className="flex items-center gap-3 rounded-card border border-slate-200/80 bg-slate-50/60 p-4">
               <input
                 type="checkbox"
                 checked={ratingEnabled}

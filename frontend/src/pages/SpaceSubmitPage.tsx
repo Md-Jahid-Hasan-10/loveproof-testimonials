@@ -222,12 +222,12 @@ export default function SpaceSubmitPage() {
             alt=""
             width={240}
             height={180}
-            className="rounded-lg"
+            className="rounded-card"
           />
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">
             Thank you!
           </h1>
-          <p className="text-base text-slate-600">
+          <p className="text-base leading-relaxed text-slate-600">
             Your testimonial has been sent to {space.title}. It is now live.
           </p>
           <p className="text-sm text-slate-500">
@@ -264,13 +264,16 @@ export default function SpaceSubmitPage() {
             {pageTitle}
           </h1>
           {space.subtitle && (
-            <p className="text-base text-slate-600">{space.subtitle}</p>
+            <p className="text-base leading-relaxed text-slate-600">
+              {space.subtitle}
+            </p>
           )}
         </header>
 
         {submitError && <ErrorBanner message={submitError} />}
 
-        <form onSubmit={handleSubmit} noValidate className="space-y-5">
+        <div className="surface-raised p-6 sm:p-8">
+          <form onSubmit={handleSubmit} noValidate className="space-y-5">
           <Field label="Your name" required error={errors.name}>
             {(field) => (
               <input
@@ -281,7 +284,7 @@ export default function SpaceSubmitPage() {
                 maxLength={100}
                 value={values.name}
                 onChange={(event) => setValue('name', event.target.value)}
-                className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className="control"
               />
             )}
           </Field>
@@ -301,7 +304,7 @@ export default function SpaceSubmitPage() {
                 maxLength={254}
                 value={values.email}
                 onChange={(event) => setValue('email', event.target.value)}
-                className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className="control"
               />
             )}
           </Field>
@@ -323,7 +326,7 @@ export default function SpaceSubmitPage() {
                   onChange={(event) =>
                     setValue('company', event.target.value)
                   }
-                  className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  className="control"
                 />
               )}
             </Field>
@@ -346,7 +349,7 @@ export default function SpaceSubmitPage() {
                   onChange={(event) =>
                     setValue('jobTitle', event.target.value)
                   }
-                  className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  className="control"
                 />
               )}
             </Field>
@@ -370,7 +373,7 @@ export default function SpaceSubmitPage() {
                   onChange={(event) =>
                     setValue('socialLink', event.target.value)
                   }
-                  className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  className="control"
                 />
               )}
             </Field>
@@ -394,7 +397,7 @@ export default function SpaceSubmitPage() {
                   onChange={(event) =>
                     setValue('website', event.target.value)
                   }
-                  className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  className="control"
                 />
               )}
             </Field>
@@ -414,14 +417,14 @@ export default function SpaceSubmitPage() {
                 maxLength={2000}
                 value={values.content}
                 onChange={(event) => setValue('content', event.target.value)}
-                className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className="control"
               />
             )}
           </Field>
 
           {space.ratingEnabled && (
             <div>
-              <span className="text-sm font-medium text-slate-900">
+              <span className="text-sm font-semibold tracking-tight text-slate-800">
                 Your rating
                 <span className="ml-1 text-rose-600" aria-hidden="true">
                   *
@@ -438,7 +441,7 @@ export default function SpaceSubmitPage() {
             </div>
           )}
 
-          <label className="flex items-start gap-3 rounded-lg border border-slate-200 p-3">
+          <label className="flex items-start gap-3 rounded-card border border-slate-200/80 bg-slate-50/60 p-3">
             <input
               type="checkbox"
               name="consent"
@@ -473,7 +476,8 @@ export default function SpaceSubmitPage() {
               {submitting ? 'Sending…' : 'Send my testimonial'}
             </Button>
           </div>
-        </form>
+          </form>
+        </div>
       </div>
     </SpaceTheme>
   )

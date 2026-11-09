@@ -31,7 +31,7 @@ export function EmbedPreview({
 
   return (
     <div
-      className={`rounded-xl border p-5 ${dark ? 'border-slate-700 bg-slate-900' : 'border-slate-200 bg-white'}`}
+      className={`rounded-card border p-5 shadow-card ${dark ? 'border-slate-700 bg-slate-900' : 'border-slate-200/80 bg-white'}`}
       style={
         backgroundColor
           ? { backgroundColor }
@@ -109,10 +109,10 @@ function EmbedPreviewCard({
 
   return (
     <article
-      className={`rounded-lg border p-4 ${
+      className={`rounded-card border p-4 ${
         dark
           ? 'border-slate-700 bg-slate-800'
-          : 'border-slate-200 bg-slate-50'
+          : 'border-slate-200/80 bg-slate-50'
       } ${className}`}
     >
       <p

@@ -40,7 +40,12 @@ export function StarRating({
         {[1, 2, 3, 4, 5].map((star) => {
           const filled = value !== null && star <= value
           return (
-            <label key={star} className="cursor-pointer p-0.5">
+            <label
+              key={star}
+              className={`cursor-pointer rounded p-1 transition-transform hover:scale-110 ${
+                disabled ? 'cursor-not-allowed' : ''
+              }`}
+            >
               <input
                 type="radio"
                 name={`${id}-rating`}
@@ -52,7 +57,9 @@ export function StarRating({
               />
               <span
                 aria-hidden="true"
-                className={`block text-3xl leading-none transition-colors peer-focus-visible:ring-2 peer-focus-visible:ring-brand-500 peer-focus-visible:ring-offset-2 ${filled ? 'text-amber-400' : 'text-slate-300'} ${disabled ? 'cursor-not-allowed' : ''}`}
+                className={`block text-3xl leading-none transition peer-focus-visible:ring-2 peer-focus-visible:ring-brand-500 peer-focus-visible:ring-offset-2 ${
+                  filled ? 'text-amber-400 drop-shadow-sm' : 'text-slate-300'
+                } ${disabled ? 'cursor-not-allowed' : ''}`}
               >
                 ★
               </span>
@@ -62,7 +69,7 @@ export function StarRating({
             </label>
           )
         })}
-        <span className="ml-2 text-sm text-slate-600">
+        <span className="ml-2 text-sm font-medium text-slate-600">
           {value === null
             ? 'No rating selected'
             : `${value} out of 5${value === 1 ? ' star' : ' stars'}`}

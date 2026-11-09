@@ -202,10 +202,9 @@ export default function SpaceEmbedPage() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="truncate text-2xl font-bold tracking-tight text-slate-900">
-            Wall of Love
-          </h1>
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="eyebrow">Embed</p>
+          <h1 className="page-title mt-1.5 truncate">Wall of Love</h1>
+          <p className="page-subtitle">
             Put your testimonials on your own website. Only the ones on your
             Wall of Love, and only the ones that are visible, appear there.
           </p>
@@ -220,14 +219,14 @@ export default function SpaceEmbedPage() {
       {notice && (
         <p
           role="status"
-          className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900"
+          className="rounded-card border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900"
         >
           {notice}
         </p>
       )}
 
-      <Card className="p-6">
-        <h2 className="text-base font-semibold text-slate-900">Layout</h2>
+      <Card className="p-6" elevation="raised">
+        <h2 className="section-title">Layout</h2>
 
         <div
           role="radiogroup"
@@ -244,10 +243,10 @@ export default function SpaceEmbedPage() {
             return (
               <label
                 key={option.key}
-                className={`flex items-start gap-3 rounded-lg border p-3 ${
+                className={`flex items-start gap-3 rounded-card border p-3 transition ${
                   layout === option.key
-                    ? 'border-brand-500 bg-brand-50'
-                    : 'border-slate-200'
+                    ? 'border-brand-500 bg-brand-50 shadow-card ring-1 ring-brand-200'
+                    : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-card'
                 } ${locked ? 'opacity-70' : ''}`}
               >
                 <input
@@ -276,8 +275,8 @@ export default function SpaceEmbedPage() {
         </div>
       </Card>
 
-      <Card className="p-6">
-        <h2 className="text-base font-semibold text-slate-900">Appearance</h2>
+      <Card className="p-6" elevation="raised">
+        <h2 className="section-title">Appearance</h2>
 
         <div
           role="radiogroup"
@@ -292,10 +291,10 @@ export default function SpaceEmbedPage() {
           ).map((option) => (
             <label
               key={option.key}
-              className={`flex items-center gap-3 rounded-lg border p-3 ${
+              className={`flex items-center gap-3 rounded-card border p-3 transition ${
                 themeMode === option.key
-                  ? 'border-brand-500 bg-brand-50'
-                  : 'border-slate-200'
+                  ? 'border-brand-500 bg-brand-50 shadow-card ring-1 ring-brand-200'
+                  : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-card'
               }`}
             >
               <input
@@ -359,13 +358,13 @@ export default function SpaceEmbedPage() {
         </div>
       </Card>
 
-      <Card className="p-6">
-        <h2 className="text-base font-semibold text-slate-900">Preview</h2>
-        <p className="mt-1 text-sm text-slate-600">
+      <Card className="p-6" elevation="raised">
+        <h2 className="section-title">Preview</h2>
+        <p className="section-subtitle">
           This is how the embed will look on your website.
         </p>
 
-        <div className="mt-4">
+        <div className="mt-5">
           <EmbedPreview
             title={preview?.title ?? config.spaceId}
             subtitle={preview?.subtitle ?? null}
@@ -378,16 +377,14 @@ export default function SpaceEmbedPage() {
         </div>
       </Card>
 
-      <Card className="p-6">
-        <h2 className="text-base font-semibold text-slate-900">
-          Paste this into your website
-        </h2>
-        <p className="mt-1 text-sm text-slate-600">
+      <Card className="p-6" elevation="raised">
+        <h2 className="section-title">Paste this into your website</h2>
+        <p className="section-subtitle">
           Put it where you want the testimonials to appear. It works on any
           site, and it keeps working after you change the settings above.
         </p>
 
-        <pre className="mt-4 overflow-x-auto rounded-lg bg-slate-900 p-4 text-xs text-slate-100">
+        <pre className="mt-4 overflow-x-auto rounded-control bg-slate-900 p-4 text-xs leading-relaxed text-slate-100 shadow-inner">
           <code>{snippet}</code>
         </pre>
 

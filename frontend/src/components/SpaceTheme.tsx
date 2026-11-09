@@ -39,8 +39,8 @@ function themeClasses(theme: string): { page: string; panel: string } {
   switch (theme) {
     case 'cards':
       return {
-        page: 'bg-slate-100',
-        panel: 'rounded-2xl bg-white p-8 shadow-lg',
+        page: 'bg-canvas',
+        panel: 'rounded-card bg-white p-8 shadow-raised',
       }
     case 'minimal':
       return {
@@ -50,23 +50,23 @@ function themeClasses(theme: string): { page: string; panel: string } {
     case 'bold':
       return {
         page: 'bg-slate-900',
-        panel: 'rounded-2xl bg-white p-8',
+        panel: 'rounded-card bg-white p-8',
       }
     case 'gradient':
       return {
         page: 'bg-gradient-to-br from-brand-600 via-purple-600 to-pink-500',
-        panel: 'rounded-2xl bg-white p-8 shadow-xl',
+        panel: 'rounded-card bg-white p-8 shadow-lifted',
       }
     case 'spotlight':
       return {
         page: 'bg-amber-50',
-        panel: 'border-2 border-amber-400 bg-white p-8 shadow-md',
+        panel: 'rounded-card border-2 border-amber-400 bg-white p-8 shadow-raised',
       }
     case 'basic':
     default:
       return {
-        page: 'bg-slate-50',
-        panel: 'rounded-xl bg-white p-8 shadow-sm',
+        page: 'bg-canvas',
+        panel: 'rounded-card bg-white p-8 shadow-card',
       }
   }
 }

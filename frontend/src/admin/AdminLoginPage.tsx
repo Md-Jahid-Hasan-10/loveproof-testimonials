@@ -41,28 +41,26 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-100 via-canvas to-canvas px-4">
       {/*
         The skip link is the first focusable element, so a keyboard user can
         jump straight to the form without reading the page heading first.
       */}
       <a
         href="#main"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-brand-600 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-control focus:bg-brand-600 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white"
       >
         Skip to the sign-in form
       </a>
 
       <main id="main" tabIndex={-1} className="w-full max-w-md focus:outline-none">
-        <Card className="p-6 sm:p-8">
+        <Card className="p-6 sm:p-8" elevation="floating">
           <div className="mb-6">
-            <p className="text-sm font-semibold uppercase tracking-wide text-brand-700">
-              LoveProof
-            </p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-900">
+            <p className="eyebrow">LoveProof Admin</p>
+            <h1 className="mt-1.5 text-2xl font-bold tracking-tight text-slate-900">
               Admin sign in
             </h1>
-            <p className="mt-2 text-sm text-slate-600">
+            <p className="mt-2 text-sm leading-relaxed text-slate-600">
               Sign in to moderate customer testimonials.
             </p>
           </div>
@@ -87,7 +85,7 @@ export default function AdminLoginPage() {
                   autoComplete="username"
                   value={username}
                   onChange={(event) => setUsername(event.target.value)}
-                  className="rounded-lg border border-slate-300 px-3 py-2.5 text-slate-900 shadow-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
+                  className="control"
                 />
               )}
             </Field>
@@ -101,7 +99,7 @@ export default function AdminLoginPage() {
                   autoComplete="current-password"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  className="rounded-lg border border-slate-300 px-3 py-2.5 text-slate-900 shadow-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
+                  className="control"
                 />
               )}
             </Field>

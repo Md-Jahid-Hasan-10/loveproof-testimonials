@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { BrandMark } from '../components/BrandMark'
 import { Button } from '../components/Button'
 import { Card } from '../components/Card'
 import { ErrorBanner } from '../components/ErrorBanner'
@@ -46,22 +47,19 @@ export default function CustomerRegisterPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-brand-50 via-canvas to-canvas px-4 py-12">
       <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
-          <Link
-            to="/"
-            className="text-lg font-bold tracking-tight text-slate-900"
-          >
-            LoveProof
+        <div className="mb-8 flex justify-center">
+          <Link to="/" className="rounded-lg">
+            <BrandMark />
           </Link>
         </div>
 
-        <Card className="p-6">
+        <Card className="p-6" elevation="floating">
           <h1 className="text-xl font-bold tracking-tight text-slate-900">
             Create your account
           </h1>
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="mt-1.5 text-sm leading-relaxed text-slate-600">
             Start collecting testimonials in a couple of minutes.
           </p>
 
@@ -78,7 +76,7 @@ export default function CustomerRegisterPage() {
             <div>
               <label
                 htmlFor="email"
-                className="block text-sm font-medium text-slate-700"
+                className="block text-sm font-semibold tracking-tight text-slate-800"
               >
                 Email address
               </label>
@@ -90,14 +88,14 @@ export default function CustomerRegisterPage() {
                 required
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className="control mt-1.5"
               />
             </div>
 
             <div>
               <label
                 htmlFor="displayName"
-                className="block text-sm font-medium text-slate-700"
+                className="block text-sm font-semibold tracking-tight text-slate-800"
               >
                 Your name
               </label>
@@ -109,9 +107,9 @@ export default function CustomerRegisterPage() {
                 value={displayName}
                 onChange={(event) => setDisplayName(event.target.value)}
                 aria-describedby="displayNameHelp"
-                className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className="control mt-1.5"
               />
-              <p id="displayNameHelp" className="mt-1 text-xs text-slate-500">
+              <p id="displayNameHelp" className="mt-1.5 text-xs text-slate-500">
                 Optional. We use the first part of your email address if you
                 leave this blank.
               </p>
@@ -120,7 +118,7 @@ export default function CustomerRegisterPage() {
             <div>
               <label
                 htmlFor="password"
-                className="block text-sm font-medium text-slate-700"
+                className="block text-sm font-semibold tracking-tight text-slate-800"
               >
                 Password
               </label>
@@ -134,9 +132,9 @@ export default function CustomerRegisterPage() {
                 aria-describedby="passwordHelp"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                className="mt-1 block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className="control mt-1.5"
               />
-              <p id="passwordHelp" className="mt-1 text-xs text-slate-500">
+              <p id="passwordHelp" className="mt-1.5 text-xs text-slate-500">
                 At least 8 characters.
               </p>
             </div>
@@ -150,7 +148,7 @@ export default function CustomerRegisterPage() {
             Already have an account?{' '}
             <Link
               to="/app/sign-in"
-              className="font-medium text-brand-700 underline"
+              className="font-semibold text-brand-700 underline underline-offset-2 hover:text-brand-800"
             >
               Sign in
             </Link>

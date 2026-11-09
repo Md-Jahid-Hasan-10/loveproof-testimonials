@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { describeFailure, getDashboardStats } from '../api'
 import type { DashboardStats } from '../api'
+import { Button } from '../components/Button'
 import { Card } from '../components/Card'
 import { ErrorBanner } from '../components/ErrorBanner'
 import { LoadingIndicator } from '../components/LoadingIndicator'
@@ -36,10 +37,9 @@ export default function AdminDashboardPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-          Dashboard
-        </h1>
-        <p className="mt-1 text-sm text-slate-600">
+        <p className="eyebrow">Moderation</p>
+        <h1 className="page-title mt-1.5">Dashboard</h1>
+        <p className="page-subtitle">
           Every testimonial submitted through the public form, by moderation
           state.
         </p>
@@ -63,31 +63,28 @@ export default function AdminDashboardPage() {
           </dl>
 
           {stats.total === 0 && (
-            <Card className="p-8 text-center">
+            <Card className="p-8 text-center" elevation="raised">
               <h2 className="text-lg font-semibold text-slate-900">
                 No testimonials yet
               </h2>
-              <p className="mx-auto mt-2 max-w-md text-sm text-slate-600">
+              <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-600">
                 Nothing has been submitted through the public form. The counts
                 above fill in as submissions arrive.
               </p>
               <div className="mt-6">
-                <Link
-                  to="/submit"
-                  className="inline-flex items-center rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700"
-                >
-                  Open the public form
+                <Link to="/submit">
+                  <Button>Open the public form</Button>
                 </Link>
               </div>
             </Card>
           )}
 
           <div className="grid gap-4 lg:grid-cols-3">
-            <Card className="p-5">
+            <Card className="p-5" elevation="raised">
               <p className="text-sm font-medium text-slate-600">
                 Total testimonials
               </p>
-              <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
+              <p className="mt-2 bg-gradient-to-br from-brand-700 to-brand-500 bg-clip-text text-3xl font-bold tracking-tight text-transparent">
                 {stats.total}
               </p>
               <p className="mt-1 text-sm text-slate-500">
@@ -95,20 +92,20 @@ export default function AdminDashboardPage() {
               </p>
             </Card>
 
-            <Card className="p-5">
+            <Card className="p-5" elevation="raised">
               <p className="text-sm font-medium text-slate-600">
                 Submitted in the last 7 days
               </p>
-              <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
+              <p className="mt-2 bg-gradient-to-br from-brand-700 to-brand-500 bg-clip-text text-3xl font-bold tracking-tight text-transparent">
                 {stats.last7Days}
               </p>
             </Card>
 
-            <Card className="p-5">
+            <Card className="p-5" elevation="raised">
               <p className="text-sm font-medium text-slate-600">
                 Average approved rating
               </p>
-              <p className="mt-2 text-3xl font-bold tracking-tight text-slate-900">
+              <p className="mt-2 bg-gradient-to-br from-brand-700 to-brand-500 bg-clip-text text-3xl font-bold tracking-tight text-transparent">
                 {stats.averageRating === null
                   ? '—'
                   : stats.averageRating.toFixed(1)}
@@ -122,11 +119,8 @@ export default function AdminDashboardPage() {
           </div>
 
           <div>
-            <Link
-              to="/admin/inbox"
-              className="inline-flex items-center rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700"
-            >
-              Open the moderation inbox
+            <Link to="/admin/inbox">
+              <Button>Open the moderation inbox</Button>
             </Link>
           </div>
         </div>
@@ -159,10 +153,10 @@ function CountTile({
   tone: Tone
 }) {
   return (
-    <Card className="p-5">
+    <Card className="p-5" elevation="raised">
       <dt className="text-sm font-medium text-slate-600">{label}</dt>
       <dd
-        className={`mt-2 inline-flex rounded-lg px-2.5 py-1 text-3xl font-bold tracking-tight ring-1 ring-inset ${TONE_CLASSES[tone]}`}
+        className={`mt-2 inline-flex rounded-control px-2.5 py-1 text-3xl font-bold tracking-tight ring-1 ring-inset ${TONE_CLASSES[tone]}`}
       >
         {value}
       </dd>

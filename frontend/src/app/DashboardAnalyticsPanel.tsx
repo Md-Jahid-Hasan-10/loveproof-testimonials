@@ -61,12 +61,12 @@ function Stat({
   hint: string
 }) {
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="surface-raised p-5 transition-shadow duration-200 hover:shadow-lifted">
       <p className="text-sm font-medium text-slate-600">{label}</p>
-      <p className="mt-1 text-3xl font-bold tracking-tight text-slate-900">
+      <p className="mt-1.5 bg-gradient-to-br from-brand-700 to-brand-500 bg-clip-text text-3xl font-bold tracking-tight text-transparent">
         {value.toLocaleString('en-GB')}
       </p>
-      <p className="mt-1 text-xs text-slate-500">{hint}</p>
+      <p className="mt-1.5 text-xs text-slate-500">{hint}</p>
     </div>
   )
 }
@@ -106,8 +106,8 @@ export function DashboardAnalyticsPanel() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h2 className="text-lg font-semibold text-slate-900">Your numbers</h2>
-          <p className="mt-1 text-sm text-slate-600">
+          <h2 className="section-title">Your numbers</h2>
+          <p className="section-subtitle">
             Only your own Spaces and testimonials are counted.
           </p>
         </div>
@@ -115,7 +115,7 @@ export function DashboardAnalyticsPanel() {
         <div
           role="group"
           aria-label="Chart range"
-          className="flex rounded-lg ring-1 ring-inset ring-slate-300"
+          className="inline-flex rounded-control bg-slate-100 p-1"
         >
           {RANGES.map((range) => (
             <button
@@ -123,10 +123,10 @@ export function DashboardAnalyticsPanel() {
               type="button"
               aria-pressed={rangeDays === range.days}
               onClick={() => handleRangeChange(range.days)}
-              className={`px-3 py-1.5 text-sm font-medium first:rounded-l-lg last:rounded-r-lg ${
+              className={`rounded-[0.4rem] px-3 py-1.5 text-sm font-medium transition ${
                 rangeDays === range.days
-                  ? 'bg-brand-600 text-white'
-                  : 'bg-white text-slate-700 hover:bg-slate-50'
+                  ? 'bg-white text-brand-700 shadow-sm ring-1 ring-inset ring-slate-200/70'
+                  : 'text-slate-600 hover:text-slate-900'
               }`}
             >
               {range.label}
@@ -140,14 +140,14 @@ export function DashboardAnalyticsPanel() {
       )}
 
       {isFree && !loading && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-amber-200/80 bg-gradient-to-r from-amber-50 to-orange-50/60 px-4 py-3">
           <p className="text-sm text-amber-900">
             The Premium plan unlocks more Spaces, more testimonials per Space
             and the carousel embed.
           </p>
           <Link
             to="/app/billing"
-            className="mt-1 inline-block text-sm font-semibold text-amber-900 underline"
+            className="text-sm font-semibold text-amber-900 underline underline-offset-2 hover:text-amber-950"
           >
             See what Premium offers
           </Link>
@@ -179,15 +179,13 @@ export function DashboardAnalyticsPanel() {
               />
             </div>
 
-            <Card className="p-6">
-              <h3 className="text-base font-semibold text-slate-900">
-                Testimonials per day
-              </h3>
-              <p className="mt-1 text-sm text-slate-600">
+            <Card className="p-6" elevation="raised">
+              <h3 className="section-title">Testimonials per day</h3>
+              <p className="section-subtitle">
                 The last {dashboard.rangeDays} days, in UTC. A day with no
                 submissions is shown as zero.
               </p>
-              <div className="mt-4">
+              <div className="mt-5">
                 <DashboardChart
                   daily={dashboard.daily ?? []}
                   rangeDays={dashboard.rangeDays}
@@ -195,10 +193,8 @@ export function DashboardAnalyticsPanel() {
               </div>
             </Card>
 
-            <Card className="p-6">
-              <h3 className="text-base font-semibold text-slate-900">
-                Recent submissions
-              </h3>
+            <Card className="p-6" elevation="raised">
+              <h3 className="section-title">Recent submissions</h3>
               {(dashboard.recent ?? []).length === 0 ? (
                 <p className="mt-2 text-sm text-slate-600">
                   Nothing has been submitted yet. Share a Space&rsquo;s public

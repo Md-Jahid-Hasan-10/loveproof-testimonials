@@ -36,18 +36,21 @@ export function Field({
     undefined
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="text-sm font-medium text-slate-900">
+    <div className="flex flex-col gap-2">
+      <label
+        htmlFor={id}
+        className="text-sm font-semibold tracking-tight text-slate-800"
+      >
         {label}
         {required && (
-          <span className="ml-1 text-rose-600" aria-hidden="true">
+          <span className="ml-1 text-rose-500" aria-hidden="true">
             *
           </span>
         )}
         {required && <span className="sr-only"> (required)</span>}
       </label>
       {hint && (
-        <p id={hintId} className="text-sm text-slate-500">
+        <p id={hintId} className="-mt-1 text-[0.8125rem] leading-relaxed text-slate-500">
           {hint}
         </p>
       )}
@@ -57,8 +60,11 @@ export function Field({
         'aria-invalid': error ? true : undefined,
       })}
       {error && (
-        <p id={errorId} className="text-sm font-medium text-rose-600">
-          {error}
+        <p id={errorId} className="flex items-start gap-1.5 text-sm font-medium text-rose-600">
+          <span aria-hidden="true" className="mt-px shrink-0">
+            ⚠
+          </span>
+          <span>{error}</span>
         </p>
       )}
     </div>

@@ -25,8 +25,7 @@ import type {
 const CONSENT_STATEMENT =
   'I give permission for LoveProof to publish my testimonial, including my name, role, company and the text above, on its public testimonial wall.'
 
-const INPUT_CLASSES =
-  'w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 placeholder:text-slate-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 disabled:bg-slate-50'
+const INPUT_CLASSES = 'control'
 
 /**
  * Describes how many fields need attention.
@@ -128,11 +127,27 @@ export default function SubmitTestimonialPage() {
   if (submitted) {
     return (
       <div className="flex flex-col gap-6">
-        <Card className="p-6 sm:p-8">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+        <Card className="p-8 text-center" elevation="floating">
+          <span
+            aria-hidden="true"
+            className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-lg"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="h-6 w-6"
+            >
+              <path d="M4 12.5 9 17.5 20 6.5" />
+            </svg>
+          </span>
+          <h1 className="mt-4 text-2xl font-bold tracking-tight text-slate-900">
             Thank you for your testimonial
           </h1>
-          <p className="mt-3 text-slate-600">
+          <p className="mx-auto mt-3 max-w-lg text-sm leading-relaxed text-slate-600">
             Your testimonial has been received and is now awaiting review by a
             moderator. It is not published yet — you will see it on the public
             wall once it has been approved.
@@ -156,16 +171,17 @@ export default function SubmitTestimonialPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+        <p className="eyebrow">Your story</p>
+        <h1 className="mt-1.5 text-3xl font-bold tracking-tight text-slate-900">
           Share your experience
         </h1>
-        <p className="mt-2 text-slate-600">
+        <p className="mt-2 leading-relaxed text-slate-600">
           Tell us what you think. Every testimonial is reviewed before it is
           published.
         </p>
       </div>
 
-      <Card className="p-6 sm:p-8">
+      <Card className="p-6 sm:p-8" elevation="raised">
         <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-6">
           <div aria-live="polite">
             {summaryMessage && (
@@ -239,7 +255,7 @@ export default function SubmitTestimonialPage() {
           </Field>
 
           <div className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium text-slate-900">
+            <span className="text-sm font-semibold tracking-tight text-slate-800">
               Rating
               <span className="ml-1 text-rose-600" aria-hidden="true">
                 *

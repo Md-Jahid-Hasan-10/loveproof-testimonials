@@ -238,10 +238,9 @@ export default function BillingPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-          Billing
-        </h1>
-        <p className="mt-1 text-sm text-slate-600">
+        <p className="eyebrow">Account</p>
+        <h1 className="page-title mt-1.5">Billing</h1>
+        <p className="page-subtitle">
           Your plan, what it gives you, and how to change it.
         </p>
       </div>
@@ -253,7 +252,7 @@ export default function BillingPage() {
       {notice && (
         <p
           role="status"
-          className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900"
+          className="rounded-card border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900"
         >
           {notice}
         </p>
@@ -263,7 +262,7 @@ export default function BillingPage() {
         <p
           role="status"
           aria-live="polite"
-          className="rounded-lg border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-900"
+          className="rounded-card border border-brand-200 bg-gradient-to-r from-brand-50 to-indigo-50/60 px-4 py-3 text-sm text-brand-900"
         >
           Confirming your upgrade… we are waiting for Stripe to tell us that
           the payment went through. This usually takes a few seconds.
@@ -273,7 +272,7 @@ export default function BillingPage() {
       {cancelledCheckout && (
         <p
           role="status"
-          className="rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700"
+          className="rounded-card border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700"
         >
           Nothing has changed — you are still on the {planName(billing)}. You
           can upgrade whenever you are ready.
@@ -284,31 +283,29 @@ export default function BillingPage() {
         <p
           role="status"
           data-testid="past-due-notice"
-          className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+          className="rounded-card border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50/60 px-4 py-3 text-sm text-amber-900"
         >
           We could not take your payment. Your Premium access continues while
           we retry — please check your card details so we can charge it.
         </p>
       )}
 
-      <Card className="p-6">
+      <Card className="p-6" elevation="raised">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 className="text-base font-semibold text-slate-900">
-              Your plan
-            </h2>
-            <p className="mt-1 text-3xl font-bold tracking-tight text-slate-900">
+            <h2 className="section-title">Your plan</h2>
+            <p className="mt-1.5 bg-gradient-to-br from-brand-700 to-brand-500 bg-clip-text text-3xl font-bold tracking-tight text-transparent">
               <span data-testid="current-plan">{planName(billing)}</span>
             </p>
-            <p className="mt-1 text-sm text-slate-600">
+            <p className="mt-1.5 text-sm text-slate-600">
               {statusLine(billing)}
             </p>
           </div>
 
           {currentOption && (
-            <p className="text-sm text-slate-600">
-              {currentOption.spaces} Spaces ·{' '}
-              {currentOption.testimonialsPerSpace} testimonials per Space
+            <p className="pill bg-slate-100 text-slate-600">
+              {currentOption.spaces} Spaces · {currentOption.testimonialsPerSpace}{' '}
+              testimonials per Space
             </p>
           )}
         </div>
@@ -383,21 +380,22 @@ function PlanCard({
   current: boolean
 }) {
   return (
-    <Card className="p-6">
+    <Card
+      className={`p-6 ${current ? 'ring-1 ring-brand-200' : ''}`}
+      elevation={current ? 'raised' : 'flat'}
+    >
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-base font-semibold text-slate-900">
-          {option.label}
-        </h2>
+        <h2 className="section-title">{option.label}</h2>
         {current && (
-          <span className="rounded-md bg-brand-50 px-2 py-0.5 text-xs font-semibold uppercase tracking-wide text-brand-700">
+          <span className="pill bg-brand-50 uppercase tracking-wide text-brand-700">
             Current plan
           </span>
         )}
       </div>
 
-      <p className="mt-1 text-sm text-slate-600">{option.price}</p>
+      <p className="mt-1.5 text-sm text-slate-600">{option.price}</p>
 
-      <p className="mt-4 text-sm text-slate-700">
+      <p className="mt-4 text-sm font-medium text-slate-700">
         {option.spaces} Spaces · {option.testimonialsPerSpace} testimonials per
         Space
       </p>
@@ -405,7 +403,10 @@ function PlanCard({
       <ul className="mt-4 space-y-2">
         {option.features.map((feature) => (
           <li key={feature} className="flex gap-2 text-sm text-slate-700">
-            <span aria-hidden="true" className="text-brand-600">
+            <span
+              aria-hidden="true"
+              className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-brand-100 text-[0.625rem] font-bold text-brand-700"
+            >
               ✓
             </span>
             <span>{feature}</span>

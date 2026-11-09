@@ -99,11 +99,10 @@ export default function TestimonialWallPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-          What our customers say
-        </h1>
+        <p className="eyebrow">Wall of Love</p>
+        <h1 className="page-title mt-1.5">What our customers say</h1>
         {stats && (
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="page-subtitle">
             {stats.count} published{' '}
             {stats.count === 1 ? 'testimonial' : 'testimonials'}
             {stats.averageRating !== null && (
@@ -116,9 +115,9 @@ export default function TestimonialWallPage() {
         )}
       </div>
 
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="surface flex flex-wrap items-end justify-between gap-4 p-4">
         <fieldset className="flex flex-col gap-1.5">
-          <legend className="text-sm font-medium text-slate-900">
+          <legend className="text-sm font-semibold tracking-tight text-slate-800">
             Filter by rating
           </legend>
           <div className="flex flex-wrap gap-1">
@@ -141,14 +140,17 @@ export default function TestimonialWallPage() {
         </fieldset>
 
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="wall-sort" className="text-sm font-medium text-slate-900">
+          <label
+            htmlFor="wall-sort"
+            className="text-sm font-semibold tracking-tight text-slate-800"
+          >
             Sort by
           </label>
           <select
             id="wall-sort"
             value={sort}
             onChange={(event) => handleSortChange(event.target.value as SortOption)}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
+            className="control w-auto"
           >
             {SORT_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -168,21 +170,18 @@ export default function TestimonialWallPage() {
       />
 
       {!loading && !error && testimonials.length === 0 && (
-        <Card className="p-10 text-center">
+        <Card className="p-10 text-center" elevation="raised">
           <h2 className="text-lg font-semibold text-slate-900">
             {filtered ? 'No testimonials with that rating' : 'No testimonials yet'}
           </h2>
-          <p className="mx-auto mt-2 max-w-md text-sm text-slate-600">
+          <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-600">
             {filtered
               ? 'Try a different rating, or clear the filter to see every published testimonial.'
               : 'Once a testimonial is approved by a moderator it appears here. Be the first to share yours.'}
           </p>
           <div className="mt-6">
-            <Link
-              to="/submit"
-              className="inline-flex items-center rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700"
-            >
-              Share your story
+            <Link to="/submit">
+              <Button>Share your story</Button>
             </Link>
           </div>
         </Card>
@@ -197,7 +196,7 @@ export default function TestimonialWallPage() {
       )}
 
       <ul
-        className="flex flex-col gap-4"
+        className="grid gap-4 sm:grid-cols-2"
         aria-busy={loading || undefined}
         aria-label="Published testimonials"
       >
@@ -238,8 +237,14 @@ export default function TestimonialWallPage() {
  */
 function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
   return (
-    <Card className="p-5">
-      <blockquote className="flex flex-col gap-3">
+    <Card className="flex h-full flex-col p-5" elevation="raised">
+      <blockquote className="flex flex-1 flex-col gap-3">
+        <span
+          aria-hidden="true"
+          className="font-serif text-3xl leading-none text-brand-200"
+        >
+          &ldquo;
+        </span>
         <p className="whitespace-pre-line break-words text-sm leading-relaxed text-slate-700">
           {testimonial.content}
         </p>
@@ -251,17 +256,25 @@ function TestimonialCard({ testimonial }: { testimonial: Testimonial }) {
         one per card would give the page several indistinguishable landmarks.
       */}
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
-        <div className="flex min-w-0 flex-col gap-1">
-          <cite className="not-italic font-semibold break-words text-slate-900">
-            {testimonial.name}
-          </cite>
-          {(testimonial.role || testimonial.company) && (
-            <p className="break-words text-sm text-slate-500">
-              {[testimonial.role, testimonial.company]
-                .filter(Boolean)
-                .join(' · ')}
-            </p>
-          )}
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span
+            aria-hidden="true"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-700"
+          >
+            {testimonial.name.charAt(0).toUpperCase()}
+          </span>
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <cite className="not-italic font-semibold break-words text-slate-900">
+              {testimonial.name}
+            </cite>
+            {(testimonial.role || testimonial.company) && (
+              <p className="break-words text-sm text-slate-500">
+                {[testimonial.role, testimonial.company]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </p>
+            )}
+          </div>
         </div>
         <ReadOnlyStars rating={testimonial.rating} />
       </div>
@@ -286,10 +299,10 @@ function FilterButton({
       type="button"
       onClick={onClick}
       aria-pressed={selected}
-      className={`rounded-lg px-3 py-2 text-sm font-medium ${
+      className={`rounded-control px-3 py-2 text-sm font-medium transition ${
         selected
-          ? 'bg-brand-600 text-white'
-          : 'bg-white text-slate-700 ring-1 ring-inset ring-slate-300 hover:bg-slate-50'
+          ? 'bg-gradient-to-r from-brand-600 to-brand-500 text-white shadow-brand'
+          : 'bg-white text-slate-700 ring-1 ring-inset ring-slate-300 hover:bg-slate-50 hover:text-slate-900'
       }`}
     >
       {children}

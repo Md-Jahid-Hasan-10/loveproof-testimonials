@@ -119,17 +119,16 @@ export default function AdminInboxPage() {
   return (
     <div className="flex flex-col gap-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-          Moderation inbox
-        </h1>
-        <p className="mt-1 text-sm text-slate-600">
+        <p className="eyebrow">Moderation</p>
+        <h1 className="page-title mt-1.5">Moderation inbox</h1>
+        <p className="page-subtitle">
           {total} {total === 1 ? 'testimonial' : 'testimonials'} match the
           current filter.
         </p>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div role="tablist" aria-label="Filter by status" className="flex flex-wrap gap-1">
+      <div className="surface flex flex-wrap items-center justify-between gap-4 p-4">
+        <div role="tablist" aria-label="Filter by status" className="inline-flex flex-wrap gap-1 rounded-control bg-slate-100 p-1">
           {(['PENDING', 'APPROVED', 'REJECTED', 'ALL'] as InboxFilter[]).map(
             (option) => (
               <button
@@ -143,10 +142,10 @@ export default function AdminInboxPage() {
                 // screen reader announces the whole group as one set.
                 tabIndex={filter === option ? 0 : -1}
                 onClick={() => handleFilterChange(option)}
-                className={`rounded-lg px-3 py-2 text-sm font-medium ${
+                className={`rounded-[0.4rem] px-3 py-1.5 text-sm font-medium transition ${
                   filter === option
-                    ? 'bg-brand-600 text-white'
-                    : 'bg-white text-slate-700 ring-1 ring-inset ring-slate-300 hover:bg-slate-50'
+                    ? 'bg-white text-brand-700 shadow-sm ring-1 ring-inset ring-slate-200/70'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 {option === 'ALL' ? 'All' : option.charAt(0) + option.slice(1).toLowerCase()}
@@ -157,7 +156,7 @@ export default function AdminInboxPage() {
 
         <form onSubmit={handleSearchSubmit} className="flex flex-wrap items-end gap-2">
           <div className="flex min-w-0 flex-1 flex-col gap-1.5 sm:flex-none">
-            <label htmlFor="inbox-search" className="text-sm font-medium text-slate-900">
+            <label htmlFor="inbox-search" className="text-sm font-semibold tracking-tight text-slate-800">
               Search
             </label>
             <input
@@ -166,7 +165,7 @@ export default function AdminInboxPage() {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Name, company or text"
-              className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
+              className="control"
             />
           </div>
           <Button type="submit" variant="secondary">
@@ -196,7 +195,7 @@ export default function AdminInboxPage() {
         matches this filter" on top of it would contradict it.
       */}
       {!loading && !error && testimonials.length === 0 && (
-        <Card className="p-8 text-center">
+        <Card className="p-8 text-center" elevation="raised">
           <p className="text-sm text-slate-600">
             Nothing matches this filter.
           </p>
@@ -288,7 +287,7 @@ function TestimonialRow({
   }
 
   return (
-    <Card className="p-5">
+    <Card className="p-5" elevation="raised">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
@@ -387,11 +386,11 @@ function TestimonialRow({
       {rejecting && (
         <form
           onSubmit={submitRejection}
-          className="mt-4 flex flex-col gap-2 rounded-lg border border-slate-200 bg-slate-50 p-4"
+          className="mt-4 flex flex-col gap-2 rounded-card border border-slate-200/80 bg-slate-50/60 p-4"
         >
           <label
             htmlFor={`reason-${testimonial.id}`}
-            className="text-sm font-medium text-slate-900"
+            className="text-sm font-semibold tracking-tight text-slate-800"
           >
             Reason for rejecting
           </label>
@@ -402,7 +401,7 @@ function TestimonialRow({
             onChange={(event) => setReason(event.target.value)}
             aria-invalid={reasonError ? true : undefined}
             aria-describedby={reasonError ? `reason-error-${testimonial.id}` : undefined}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200"
+            className={`control ${reasonError ? 'control-invalid' : ''}`}
           />
           {reasonError && (
             <p id={`reason-error-${testimonial.id}`} className="text-sm font-medium text-rose-600">
@@ -439,7 +438,7 @@ function StatusBadge({ status }: { status: Testimonial['status'] }) {
 
   return (
     <span
-      className={`rounded-md px-2 py-0.5 text-xs font-semibold ring-1 ring-inset ${classes[status]}`}
+      className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${classes[status]}`}
     >
       {status.charAt(0) + status.slice(1).toLowerCase()}
     </span>

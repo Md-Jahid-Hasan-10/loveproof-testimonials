@@ -144,7 +144,7 @@ export default function SpaceDetailPage() {
       {created && (
         <div
           role="status"
-          className="rounded-lg border border-emerald-200 bg-emerald-50 p-4"
+          className="rounded-card border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50/60 p-4"
         >
           <p className="text-sm font-semibold text-emerald-900">
             Your Space is ready.
@@ -157,14 +157,13 @@ export default function SpaceDetailPage() {
 
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
-          <h1 className="truncate text-2xl font-bold tracking-tight text-slate-900">
-            {space.title}
-          </h1>
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="eyebrow">Space</p>
+          <h1 className="page-title mt-1.5 truncate">{space.title}</h1>
+          <p className="page-subtitle">
             Public page at{' '}
             <a
               href={space.publicUrl}
-              className="font-mono text-brand-700 underline"
+              className="font-mono text-brand-700 underline underline-offset-2 hover:text-brand-800"
               target="_blank"
               rel="noreferrer"
             >
@@ -187,14 +186,14 @@ export default function SpaceDetailPage() {
       {notice && (
         <p
           role="status"
-          className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900"
+          className="rounded-card border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900"
         >
           {notice}
         </p>
       )}
 
       {!space.editable && (
-        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4">
+        <div className="rounded-card border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50/60 p-4">
           <p className="text-sm font-semibold text-amber-900">
             This Space is read-only.
           </p>
@@ -206,8 +205,8 @@ export default function SpaceDetailPage() {
         </div>
       )}
 
-      <Card className="p-6">
-        <h2 className="text-base font-semibold text-slate-900">Details</h2>
+      <Card className="p-6" elevation="raised">
+        <h2 className="section-title">Details</h2>
 
         <div className="mt-4 space-y-4">
           <Field label="Space title" required>
@@ -219,7 +218,7 @@ export default function SpaceDetailPage() {
                 disabled={!space.editable}
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
-                className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm disabled:bg-slate-50 disabled:text-slate-500 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className="control"
               />
             )}
           </Field>
@@ -233,7 +232,7 @@ export default function SpaceDetailPage() {
                 disabled={!space.editable}
                 value={subtitle}
                 onChange={(event) => setSubtitle(event.target.value)}
-                className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm disabled:bg-slate-50 disabled:text-slate-500 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                className="control"
               />
             )}
           </Field>
@@ -256,7 +255,7 @@ export default function SpaceDetailPage() {
                   disabled={!space.editable || space.slugLocked}
                   value={slug}
                   onChange={(event) => setSlug(event.target.value)}
-                  className="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm shadow-sm disabled:bg-slate-50 disabled:text-slate-500 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  className="control"
                 />
               </div>
             )}
@@ -264,11 +263,9 @@ export default function SpaceDetailPage() {
         </div>
       </Card>
 
-      <Card className="p-6">
-        <h2 className="text-base font-semibold text-slate-900">
-          What the form asks for
-        </h2>
-        <p className="mt-1 text-sm text-slate-600">
+      <Card className="p-6" elevation="raised">
+        <h2 className="section-title">What the form asks for</h2>
+        <p className="section-subtitle">
           Name and email are always collected and always required. Changing
           this never changes the testimonials you have already collected.
         </p>
@@ -298,7 +295,7 @@ export default function SpaceDetailPage() {
           ].map((field) => (
             <li
               key={field.key}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-200 p-3"
+              className="flex flex-wrap items-center justify-between gap-3 rounded-card border border-slate-200/80 bg-slate-50/60 p-3"
             >
               <span className="text-sm font-medium text-slate-900">
                 {field.label}
@@ -352,7 +349,7 @@ export default function SpaceDetailPage() {
           ))}
         </ul>
 
-        <label className="mt-4 flex items-center gap-3 rounded-lg border border-slate-200 p-3">
+        <label className="mt-4 flex items-center gap-3 rounded-card border border-slate-200/80 bg-slate-50/60 p-3">
           <input
             type="checkbox"
             disabled={!space.editable}
@@ -366,8 +363,8 @@ export default function SpaceDetailPage() {
         </label>
       </Card>
 
-      <Card className="p-6">
-        <h2 className="text-base font-semibold text-slate-900">Theme</h2>
+      <Card className="p-6" elevation="raised">
+        <h2 className="section-title">Theme</h2>
 
         <div
           role="radiogroup"
@@ -380,10 +377,10 @@ export default function SpaceDetailPage() {
             return (
               <label
                 key={candidate.key}
-                className={`flex items-start gap-3 rounded-lg border p-3 ${
+                className={`flex items-start gap-3 rounded-card border p-3 transition ${
                   theme === candidate.key
-                    ? 'border-brand-500 bg-brand-50'
-                    : 'border-slate-200'
+                    ? 'border-brand-500 bg-brand-50 shadow-card ring-1 ring-brand-200'
+                    : 'border-slate-200 bg-white hover:border-slate-300 hover:shadow-card'
                 } ${locked ? 'opacity-70' : ''}`}
               >
                 <input
