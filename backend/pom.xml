@@ -108,6 +108,42 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <!--
+                        The test suite must produce the same result on every machine, so the
+                        properties it depends on are pinned here as JVM system properties.
+
+                        The deployment's application.yml resolves these from LOVEPROOF_*
+                        environment variables. An environment variable outranks a
+                        profile-specific YAML file in Spring Boot's property ordering, so a
+                        developer shell - or a CI runner - that exports
+                        LOVEPROOF_RATE_LIMIT_SUBMIT_LIMIT=5, or a LOVEPROOF_ADMIN_PASSWORD_HASH
+                        whose '$' characters the shell has eaten, would otherwise change what the
+                        tests do. The functional tests would be refused with 429, or the
+                        moderation tests would fail to sign in, for reasons that have nothing to
+                        do with the code under test.
+
+                        A system property outranks both, so the suite runs the same whatever
+                        the ambient environment happens to hold (NFR-TEST-4, NFR-TEST-5).
+
+                        The BCrypt hash below is the cost-10 hash of "test-password". It
+                        authenticates nothing outside the test suite.
+                    -->
+                    <systemPropertyVariables>
+                        <loveproof.rate-limit.submit.limit>1000</loveproof.rate-limit.submit.limit>
+                        <loveproof.rate-limit.submit.period-seconds>3600</loveproof.rate-limit.submit.period-seconds>
+                        <loveproof.rate-limit.login.limit>1000</loveproof.rate-limit.login.limit>
+                        <loveproof.rate-limit.login.period-seconds>300</loveproof.rate-limit.login.period-seconds>
+                        <loveproof.admin.username>testadmin</loveproof.admin.username>
+                        <loveproof.admin.display-name>Test Admin</loveproof.admin.display-name>
+                        <loveproof.admin.role>ADMIN</loveproof.admin.role>
+                        <loveproof.admin.password-hash>$2a$10$UfwtiQtmSMSKJkh0sOju3OwtOv71VHnabyvaKEgBuhD1isEeTR6l6</loveproof.admin.password-hash>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 </project>

@@ -607,7 +607,7 @@ The password hash, the Stripe identifiers and the Google subject are never inclu
 | Endpoint | Purpose |
 |---|---|
 | `GET /api/app/auth/verify-email?token=…` | Whether a verification token is still valid. The only `GET` that is not idempotent-by-omission |
-| `POST /api/app/auth/verify-email` | Confirms the address and signs the account in |
+| `POST /api/app/auth/verify-email` | Confirms the address. It does **not** sign the account in — the customer must sign in separately |
 | `POST /api/app/auth/forgot-password` | Starts a password reset. The answer is the same whether or not the address exists |
 | `POST /api/app/auth/reset-password` | Completes a reset |
 | `POST /api/app/auth/change-password` | Changes the password of a signed-in account |
@@ -1041,6 +1041,12 @@ See [Billing endpoints](#billing-endpoints) for the plan catalogue and the meani
 account, which has none — the account settings page offers the password form only when there is
 one, so a Google-only account is not shown a form that could not work. The provider itself is
 not sent: the interface needs to know whether the form applies, not who the provider is.
+
+> **Google sign-in is not implemented yet.** The data model supports it — `app_user.auth_provider`,
+> `app_user.google_subject` and `AuthService.signInWithGoogle` — but there is no HTTP entry point,
+> so `hasPassword` is `true` for every account that can currently exist. The `false` case is
+> described here because the field and the rule are part of the contract, not because it is
+> reachable yet.
 
 ### `Dashboard`
 

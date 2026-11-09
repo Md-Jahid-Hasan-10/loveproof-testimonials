@@ -28,9 +28,18 @@ inbox; approved testimonials publish on a public wall.
 
 Specification documents (these are the source of truth for scope):
 
-- `docs/requirements.md` — functional/non-functional requirements, assumptions, out-of-scope list
+- `docs/PRD-testimonial-saas.md` — **the current specification**: the multi-tenant product, its
+  roles, functional requirements, business rules, subscription limits and end-to-end acceptance
+  criteria
 - `docs/data-model.md` — entities, fields, relationships, constraints, ER diagram
-- `docs/implementation-plan.md` — 11 build phases with acceptance criteria
+- `docs/api.md` — the full API reference
+
+Two documents are **historical** — they describe the original single-tenant wall and its
+administrator inbox, not the multi-tenant product:
+
+- `docs/requirements.md` — the original functional/non-functional requirements, assumptions and
+  out-of-scope list
+- `docs/implementation-plan.md` — the original 11 build phases with acceptance criteria
 
 ---
 
@@ -796,13 +805,24 @@ These are hard rules. Violating them is worse than an incomplete feature.
 
 ## 10. Scope Discipline
 
-The scope is fixed in `docs/requirements.md` §6 (out of scope) and §5 (assumptions). Work within it.
+The scope is fixed in `docs/PRD-testimonial-saas.md` §2 (Non-Goals) and §9 (MVP scope). Work within
+it.
 
-- Do not add multi-tenancy, user registration, OAuth, email notifications, import/export, image
-  uploads, dark mode, or a search engine.
+- Do not add video or image testimonials, workspaces, teams or roles beyond the single-account
+  model, a drag-and-drop form builder, custom fields, custom domains, white-label or agency
+  features, third-party integrations, AI features, social import, notifications beyond auth and
+  Stripe email, account deletion, social login providers other than Google, annual billing, or a
+  free trial.
+- Do not add a CAPTCHA. The public endpoints are guarded by a honeypot field, rate limiting and a
+  duplicate-submission fingerprint instead — this was a deliberate decision that overrides the
+  Turnstile mention in PRD §4.5.
 - Do not introduce a state-management library, a second test framework, or a new persistence layer.
 - If a requirement seems to need something out of scope, raise it and propose an alternative rather
   than silently building it.
+
+> The original single-tenant scope in `docs/requirements.md` §6 and §5 is **historical**. It
+> predates the multi-tenant product and must not be used to rule work out of scope — multi-tenancy,
+> user registration and OAuth are all now part of this application.
 
 ---
 

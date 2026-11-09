@@ -681,10 +681,13 @@ SELECT * FROM space_testimonial
  ORDER BY submitted_at DESC;
 
 -- The recent submissions.
+-- NOTE: the repository method declares a `limit` parameter that this query
+-- does not currently reference, so it returns every testimonial across the
+-- account's Spaces rather than the ten the dashboard displays. See the
+-- "Known limitations" section of the README.
 SELECT * FROM space_testimonial
  WHERE space_id IN (:space_ids)
- ORDER BY submitted_at DESC
- LIMIT 10;
+ ORDER BY submitted_at DESC;
 ```
 
 Two rules shape these queries:
@@ -768,5 +771,7 @@ Two rules shape these queries:
 
 ## 10. Related Documents
 
-- [`docs/requirements.md`](./requirements.md) — functional and non-functional requirements.
-- [`docs/implementation-plan.md`](./implementation-plan.md) — phased build plan with acceptance criteria.
+- [`docs/PRD-testimonial-saas.md`](./PRD-testimonial-saas.md) — **the current specification**: the multi-tenant product, its business rules and its acceptance criteria.
+- [`docs/requirements.md`](./requirements.md) — the **original single-tenant** functional and non-functional requirements. Historical.
+- [`docs/implementation-plan.md`](./implementation-plan.md) — the **original single-tenant** phased build plan (phases 0–11) with acceptance criteria. Historical.
+- [`docs/api.md`](./api.md) — the full API reference.
