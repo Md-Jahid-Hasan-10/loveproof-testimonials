@@ -20,7 +20,7 @@ share the database and the deployment but not their sessions.
 > **Status.** Every phase of the PRD build order is implemented and verified, **except Google
 > sign-in**, which has the data model but no sign-in path — see
 > [Completed and incomplete features](#completed-and-incomplete-features).
-> **361 backend tests, 222 frontend tests, 0 failures.**
+> **378 backend tests, 222 frontend tests, 0 failures.**
 
 ---
 
@@ -412,6 +412,7 @@ Full request and response examples: [`docs/api.md`](docs/api.md).
 | `GET` | `/api/app/public/spaces/{slug}` | The public Space: its title, theme and whether it is accepting submissions. |
 | `POST` | `/api/app/public/spaces/{slug}/testimonials` | Submit a testimonial to that Space. |
 | `GET` | `/api/app/public/embeds/{token}` | The embed data for a token. |
+| `GET` | `/embed/loveproof.js` | The embed widget's script. Served from `LOVEPROOF_APP_BASE_URL`, so a self-hoster must point that variable at the host that serves the backend. |
 
 ### Stripe webhook — authenticated by signature, not by session
 
@@ -501,15 +502,18 @@ run of this repository.
 
 | # | Command | Result |
 |---|---|---|
-| 1 | `cd backend && mvn -o clean test` | **Tests run: 361, Failures: 0, Errors: 0, Skipped: 0** — `BUILD SUCCESS` (1 m 25 s) |
+| 1 | `cd backend && mvn -o clean test` | **Tests run: 378, Failures: 0, Errors: 0, Skipped: 0** — `BUILD SUCCESS` (54.9 s) |
 | 2 | `cd frontend && npm run lint` | Clean — ESLint reported no problems. |
-| 3 | `cd frontend && npx vitest run` | **Test Files 22 passed (22), Tests 222 passed (222)** (9.84 s) |
-| 4 | `cd frontend && npm run build` | Type-check passed; **101.1 kB gzip total**, within the 250 kB budget — `Within budget: the whole download is 101.1 kB of the 250.0 kB allowed.` |
+| 3 | `cd frontend && npx vitest run` | **Test Files 22 passed (22), Tests 222 passed (222)** (10.92 s) |
+| 4 | `cd frontend && npm run build` | Type-check passed; **105.2 kB gzip total**, within the 250 kB budget — `Within budget: the whole download is 105.2 kB of the 250.0 kB allowed.` |
 
-> A first attempt at command 1 in this session failed with **230 errors**, all of them
+> **The backend suite needs Docker running.** It uses Testcontainers against a real PostgreSQL 16,
+> so the tests exercise the Flyway migrations and the database constraints rather than an emulator.
+>
+> A first attempt at command 1 failed with **230 errors**, all of them
 > `FileNotFoundException: class path resource [...Test.class] cannot be opened`. That was a stale
 > `target/` directory — the compiled test classes had gone missing — not a code regression;
-> `mvn -o clean test` passed 361/361 straight afterwards. If you see that error, run `mvn clean`
+> `mvn -o clean test` passed straight afterwards. If you see that error, run `mvn clean`
 > first.
 
 ### What the suites actually cover
@@ -559,8 +563,7 @@ commit messages name the step rather than the diff.
 
 ### 2. A dedicated code-reviewer sub-agent
 
-`.puku-cli/agents/loveproof-code-reviewer.md` — a project-scoped reviewer with **persistent,
-file-based memory** at `.puku-cli/agent-memory/loveproof-code-reviewer/`. It runs with a
+`.puku-cli/agents/loveproof-code-reviewer.md` — a project-scoped reviewer that runs with a
 read-only mandate: it never edits, never commits, and never claims a problem is fixed.
 
 It found the defects listed under [Incomplete](#incomplete) — the unreachable Google path, the
@@ -575,6 +578,9 @@ The backend's behaviour was checked in a real browser over the DevTools Protocol
 `/app`, and the dashboard was confirmed to render with no session errors. This is what caught the
 "your session has expired" bug that the unit tests had passed straight over, because the cause was
 in the controller, not in the component under test.
+
+The same technique now produces the screenshots in this README: a temporary CDP script signs in to
+both protected surfaces and captures each screen against the running application.
 
 ### 4. Mutation testing as a proof of test quality
 
@@ -598,8 +604,12 @@ workflow is designed to surface.
 
 ### 7. Persistent memory for the project
 
-`.puku-cli/agent-memory/` holds the reviewer's accumulated knowledge of this codebase, so a later
-review starts from what earlier reviews already established rather than re-deriving it.
+The reviewer is configured with `memory: project` and is told to keep a file-based memory at
+`.puku-cli/agent-memory/loveproof-code-reviewer/`, so that a later review starts from what earlier
+reviews established rather than re-deriving it.
+
+**That directory does not exist yet** — the agent was only ever run once, and it reported its
+findings without writing them down. The mechanism is in place; the accumulated notes are not.
 
 ---
 
@@ -906,7 +916,7 @@ loveproof-testimonials/
 │       └── pages/            # ✓ HomePage, SubmitTestimonialPage (+ validation module)
 ├── docs/                     # Requirements, data model, plan, PRD, API reference
 ├── screenshots/              # Captured UI screenshots
-├── .puku-cli/                # ✓ Puku CLI config — the code-reviewer agent, its memory, the
+├── .puku-cli/                # ✓ Puku CLI config — the code-reviewer agent, the
 │                             #   verify-feature skill, and the local permission allowlist
 ├── docker-compose.yml        # PostgreSQL 16 for local development
 └── .env.example              # Environment template (placeholders only)
