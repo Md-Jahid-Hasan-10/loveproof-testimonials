@@ -605,20 +605,38 @@ review starts from what earlier reviews already established rather than re-deriv
 
 ## Screenshots
 
+Captured from a running instance with headless Chrome over the DevTools Protocol, at 1440 px wide
+(the mobile shot at 390 px). They show the real application against a real database, not mock-ups.
+
+### The public surface
+
 | Screen | Image |
 |---|---|
+| Home | [`screenshots/home.png`](./screenshots/home.png) |
 | Public submission form | [`screenshots/submit-form.png`](./screenshots/submit-form.png) |
-| Submission form at 360 px | [`screenshots/submit-form-mobile.png`](./screenshots/submit-form-mobile.png) |
+| Submission form at 390 px | [`screenshots/submit-form-mobile.png`](./screenshots/submit-form-mobile.png) |
 | Public testimonial wall | [`screenshots/wall.png`](./screenshots/wall.png) |
 | Wall filtered to five stars | [`screenshots/wall-filtered.png`](./screenshots/wall-filtered.png) |
 | Wall empty state | [`screenshots/wall-empty.png`](./screenshots/wall-empty.png) |
+
+### The customer app
+
+| Screen | Image |
+|---|---|
+| Dashboard | [`screenshots/app-dashboard.png`](./screenshots/app-dashboard.png) |
+| New Space wizard | [`screenshots/app-space-wizard.png`](./screenshots/app-space-wizard.png) |
+| Billing | [`screenshots/app-billing.png`](./screenshots/app-billing.png) |
+| Account settings | [`screenshots/app-settings.png`](./screenshots/app-settings.png) |
+| Create your account | [`screenshots/app-register.png`](./screenshots/app-register.png) |
+| Sign in | [`screenshots/app-sign-in.png`](./screenshots/app-sign-in.png) |
+
+### The admin surface
+
+| Screen | Image |
+|---|---|
 | Admin sign in | [`screenshots/admin-login.png`](./screenshots/admin-login.png) |
 | Admin dashboard | [`screenshots/admin-dashboard.png`](./screenshots/admin-dashboard.png) |
 | Moderation inbox | [`screenshots/admin-inbox.png`](./screenshots/admin-inbox.png) |
-
-> The screenshots cover the **original single-tenant wall and its admin surface**. The customer app
-> (`/app`) — the dashboard, the Space wizard, the Space inbox, the billing page and the account
-> settings — has no screenshots yet.
 
 ---
 
@@ -692,17 +710,16 @@ review starts from what earlier reviews already established rather than re-deriv
    buckets by something that survives a restart.
 8. **Add a live Stripe integration test** behind a separate Maven profile, so the HTTP client
    itself — not just the signature verification — is covered.
-9. **Screenshot the customer app** so the README covers both surfaces.
-10. **Add contract tests** that assert the frontend's TypeScript types and the backend's DTO records
+9. **Add contract tests** that assert the frontend's TypeScript types and the backend's DTO records
     agree, which would have caught the `UpdateSpacePayload` drift (it omits `fieldJobTitle` and
     `fieldJobTitleRequired`, which the backend accepts and the page sends anyway).
-11. **Batch the Space-list query.** `AppSpaceController.list()` calls `isEditable` per Space, each
+10. **Batch the Space-list query.** `AppSpaceController.list()` calls `isEditable` per Space, each
     issuing its own query — 25 round trips at the Premium limit.
-12. **Reconcile the documentation set.** `docs/requirements.md` and `docs/implementation-plan.md`
+11. **Reconcile the documentation set.** `docs/requirements.md` and `docs/implementation-plan.md`
     are the *original single-tenant* specification, while `docs/PRD-testimonial-saas.md` is the
     current multi-tenant one. `CLAUDE.md` points at the former as the source of truth. Either
     retitle them explicitly as the historical spec or repoint the references.
-13. **Upgrade to Node 20+**, which would allow newer Vite/Vitest/Router releases and clear the
+12. **Upgrade to Node 20+**, which would allow newer Vite/Vitest/Router releases and clear the
     remaining `npm audit` advisories.
 
 ---
