@@ -76,7 +76,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
             ErrorResponseWriter errorResponseWriter,
             @Value("${loveproof.security.ip-hash-salt:loveproof-local-salt}") String ipHashSalt,
             @Value("${loveproof.rate-limit.submit.limit:5}") int submitLimit,
-            @Value("${loveproof.rate-limit.submit.perval-seconds:3600}") long submitPeriodSeconds,
+            @Value("${loveproof.rate-limit.submit.period-seconds:3600}") long submitPeriodSeconds,
             @Value("${loveproof.rate-limit.login.limit:10}") int loginLimit,
             @Value("${loveproof.rate-limit.login.period-seconds:300}") long loginPeriodSeconds) {
         this.limiter = limiter;
